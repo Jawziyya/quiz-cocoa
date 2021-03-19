@@ -1,0 +1,19 @@
+/* 
+  Localizable.strings
+  quiz
+
+  Created by avocoder on 14.03.2021.
+  Copyright © 2021 Al Jawziyya. All rights reserved.
+*/
+
+"common.yes" = "да";
+"common.no" = "нет";
+
+"topics.title" = "Темы";
+
+"quiz.check" = "Проверить";
+"quiz.continue" = "Продолжить";
+"quiz.amazing" = "Великолепно";
+"quiz.correct-solution" = "Правильное решение";
+"quiz.scope" = "Счёт";
+"quiz.cancellation-alert.title" = "Вы уверены, что хотите завершить?";

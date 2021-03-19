@@ -1,0 +1,29 @@
+{
+  "configurations" : [
+    {
+      "id" : "EFE3E849-CFD8-49CD-8320-628D0FB2C397",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "mainThreadCheckerEnabled" : false,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:quiz.xcodeproj",
+      "identifier" : "BC1247A361752457AE0D705E",
+      "name" : "quizTests"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:quiz.xcodeproj",
+        "identifier" : "BC1247A361752457AE0D705E",
+        "name" : "quizTests"
+      }
+    }
+  ],
+  "version" : 1
+}
