@@ -1,0 +1,172 @@
+[
+  {
+    "id": 1,
+    "title": "Сколько всего Сур в Коране?",
+    "options": "114; 100; 99; 77",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 0,
+    "theme_id": 2
+  },
+  {
+    "id": 2,
+    "title": "Как называется первая сура Корана?",
+    "options": "«Открывающая»; «Искренность»; «Единобожие»; «Мухаммад»",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 0,
+    "theme_id": 2
+  },
+  {
+    "id": 3,
+    "title": "Из какого количества столпов состоит религия Ислам?",
+    "options": "5; 4; 7; 10",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 0,
+    "theme_id": 1
+  },
+  {
+    "id": 4,
+    "title": "Как называется Сура, аяты которой были ниспосланы в первом откровении Пророку Мухаммаду ﷺ?",
+    "options": "«Сгусток»; «Искренность»; «Фатиха»; «Корова»",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 0,
+    "theme_id": 2
+  },
+  {
+    "id": 5,
+    "title": "Кто был первым посланником Аллаха к людям?",
+    "options": "Нух; Ибрахим; Муса; Иса",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 0,
+    "theme_id": 1
+  },
+  {
+    "id": 6,
+    "title": "Где родился Пророк Мухаммад ﷺ?",
+    "options": "Мекка; Медина; Иерусалим; Дамаск",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 0,
+    "theme_id": 3
+  },
+  {
+    "id": 7,
+    "title": "В каком направлении первое время поворачивались мусульмане при совершении молитвы?",
+    "options": "Иерусалим; Мекка; Медина; Дамаск",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 1,
+    "theme_id": 1
+  },
+  {
+    "id": 8,
+    "title": "Как назывался город Медина до Ислама?",
+    "options": "Ясриб; Басра; Куфа; Таиф",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 1,
+    "theme_id": 1
+  },
+  {
+    "id": 9,
+    "title": "В каком городе находится мечеть Пророка ﷺ?",
+    "options": "Медина; Мекка; Дамаск; Стамбул",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 0,
+    "theme_id": 1
+  },
+  {
+    "id": 10,
+    "title": "Из какого количества столпов состоит Иман?",
+    "options": "6; 4; 5; 7",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 0,
+    "theme_id": 1
+  },
+  {
+    "id": 11,
+    "title": "Как называется свидетельство, которое необходимо произнести для принятия Ислама?",
+    "options": "шахада; джихад; иджтихад; салям",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 0,
+    "theme_id": 1
+  },
+  {
+    "id": 12,
+    "title": "Сколько врат у Рая?",
+    "options": "8; 7; 6; 10",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 1,
+    "theme_id": 1
+  },
+  {
+    "id": 13,
+    "title": "Сколько врат у Ада?",
+    "options": "7; 8; 6; 10",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 1,
+    "theme_id": 1
+  },
+  {
+    "id": 14,
+    "title": "За сколько дней был создан наш мир?",
+    "options": "6; 7; 10; 3",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 1,
+    "theme_id": 1
+  },
+  {
+    "id": 15,
+    "title": "Какой грех является самым тяжелым?",
+    "options": "многобожие; убийство; прелюбодеяние; ослушание родителей",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 0,
+    "theme_id": 1
+  },
+  {
+    "id": 16,
+    "title": "Какое Писание было ниспослано Пророку Мусе (мир ему)?",
+    "options": "Тора; Евангелие; Коран; Забур",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 0,
+    "theme_id": 1
+  },
+  {
+    "id": 17,
+    "title": "Какое Писание было ниспослано Пророку Исе (мир ему)?",
+    "options": "Евангелие; Коран; Тора; Забур",
+    "answers": "0",
+    "description": null,
+    "reference": null,
+    "difficulty": 0,
+    "theme_id": 1
+  }
+]
