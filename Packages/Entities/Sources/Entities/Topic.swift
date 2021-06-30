@@ -21,10 +21,10 @@ public struct Topic: Hashable, Decodable, Identifiable {
     }
 
     public static var placeholder: Topic {
-        .init(id: 0, title: "Topic: " + UUID().uuidString, themes: [
+        .init(id: 0, title: "Ислам", themes: [
             .placeholder,
-            .placeholder,
-            .placeholder
+            .quran,
+            .sira,
         ])
     }
 
