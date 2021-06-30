@@ -58,8 +58,8 @@ enum QuizTarget: String, CaseIterable {
                 resources: "quiz/Resources/**",
                 dependencies: [
                     .package(product: QuizPackage.entities.name),
+                    .package(product: QuizPackage.databaseClient.name),
                     .package(product: "Lottie"),
-                    .package(product: "ComposableArchitecture"),
                     .sdk(name: "SwiftUI.framework", status: SDKStatus.optional),
                 ],
                 settings: Settings(
@@ -100,6 +100,7 @@ enum QuizTarget: String, CaseIterable {
 
 enum QuizPackage: String {
     case entities = "Entities"
+    case databaseClient = "DatabaseClient"
 
     var name: String { rawValue }
 
@@ -111,7 +112,8 @@ enum QuizPackage: String {
 let packages: [Package] = [
     .remote(url: "https://github.com/pointfreeco/swift-composable-architecture", requirement: .upToNextMajor(from: "0.16.0")),
     .remote(url: "https://github.com/airbnb/lottie-ios", requirement: .upToNextMajor(from: "3.2.1")),
-    .local(path: QuizPackage.entities.path)
+    .local(path: QuizPackage.entities.path),
+    .local(path: QuizPackage.databaseClient.path)
 ]
 
 let project = Project(

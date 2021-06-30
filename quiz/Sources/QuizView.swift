@@ -9,6 +9,7 @@
 import SwiftUI
 import ComposableArchitecture
 import Entities
+import DatabaseClient
 
 struct QuizState: Equatable, Hashable {
     var theme: Theme
@@ -36,6 +37,7 @@ enum QuizAction: Equatable {
 
 struct QuizEnvironment {
     let quizQuestionEnvironment = QuizQuestionEnvironment()
+    let databaseClient: DatabaseClient
 }
 
 let quizReducer = Reducer.combine(
@@ -120,7 +122,7 @@ struct QuizView: View {
                         Image(systemName: "xmark")
                             .resizable()
                             .frame(width: 18, height: 18)
-                            .contentShape(Rectangle().inset(by: -10))
+                            .contentShape(Rectangle().inset(by: -20))
                     }
                     
                     LinearProgress(progress: viewStore.progress, foregroundColor: Color.accentColor, backgroundColor: Color.gray.opacity(0.15), cornerRadius: Constant.cornerRadius, fillAxis: .horizontal)
@@ -129,13 +131,12 @@ struct QuizView: View {
 
                     HStack {
                         Text("quiz.score", comment: "Quiz score label.")
-                            .font(Font.system(.title2, design: .monospaced))
                             .foregroundColor(Color.accentColor)
                             +
                             Text(": " + viewStore.score.description)
-                            .font(Font.system(.title2, design: .monospaced))
                             .foregroundColor(Color.accentColor.darker(by: 10))
                     }
+                    .font(Font.system(.headline, design: .monospaced))
                 }
                 .padding(.horizontal)
                 
@@ -172,7 +173,7 @@ struct QuizView_Previews: PreviewProvider {
                     progress: 50
                 ),
                 reducer: quizReducer,
-                environment: QuizEnvironment()
+                environment: QuizEnvironment(databaseClient: DatabaseClient.live(url: URL(string: "")!))
             )
         )
     }
