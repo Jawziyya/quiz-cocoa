@@ -60,7 +60,7 @@ struct QuizQuestionState: Equatable, Hashable {
     }
 
     var commitButtonTitle: String {
-        hasAnswer ? "Continue" : "Check"
+        hasAnswer ? NSLocalizedString("quiz.continue", comment: "") : NSLocalizedString("quiz.check", comment: "")
     }
 
     var answerIsCorrect: Bool {
@@ -139,59 +139,41 @@ struct QuizQuestionView: View {
 
     var body: some View {
         WithViewStore(store) { viewStore in
-            VStack {
-                VStack(alignment: .center, spacing: 40) {
-                    HStack {
-                        Text(viewStore.title)
-                            .font(Font.system(.largeTitle, design: .rounded).weight(.medium))
-                            .frame(height: 140)
-                            .minimumScaleFactor(0.3)
-                        Spacer()
-                    }
-
-                    getAnswersView(options: randomIndices.map { viewStore.state.options[$0] })
-                }
-                .disabled(viewStore.hasAnswer)
-                .padding()
-
-                Spacer()
-
-                ZStack(alignment: .bottom) {
-                    if viewStore.hasAnswer {
-                        HStack {
-                            if viewStore.answerIsCorrect {
-                                Text("quiz.correct-title", comment: "Correct solution title.")
-                            } else {
-                                Text("quiz.incorrect-title \(viewStore.state.getCorrectAnswer())")
-                            }
-
-                            Spacer()
-                            Button(action: {
-                                viewStore.send(.complain)
-                            }, label: {
-                                Image(systemName: "flag")
-                                    .font(Font.body.weight(.black))
-                            })
+            ZStack(alignment: .bottom) {
+                if viewStore.hasAnswer {
+                    AnswerIndicatorView(
+                        answerIsCorrect: viewStore.answerIsCorrect,
+                        correctAnswer: viewStore.state.getCorrectAnswer(),
+                        complain: {
+                            viewStore.send(.complain)
                         }
-                        .font(Font.body.bold().smallCaps())
-                        .foregroundColor(viewStore.answerIsCorrect ? Colors.green : Colors.red)
-                        .padding()
-                        .frame(height: buttonHeight * 2, alignment: .top)
-                        .background(
-                            ZStack {
-                                if viewStore.answerIsCorrect {
-                                    Colors.green.lighter()
-                                } else {
-                                    Colors.red.lighter()
-                                }
-                            }
-                            .edgesIgnoringSafeArea(.bottom)
-                            .opacity(0.5)
-                        )
-                        .transition(.asymmetric(insertion: .move(edge: .bottom), removal: .opacity))
-                        .animation(.interactiveSpring())
-                        .zIndex(0)
+                    )
+                    .padding(.bottom, buttonHeight)
+                    .background(
+                        (viewStore.answerIsCorrect ? correctAnswerBackgroundColor : wrongAnswerBackgroundColor)
+                            .edgesIgnoringSafeArea(.all)
+                    )
+                    .transition(.asymmetric(insertion: .move(edge: .bottom), removal: .opacity))
+                    .animation(.interactiveSpring())
+                    .zIndex(0)
+                }
+
+                VStack {
+                    VStack(alignment: .center, spacing: 40) {
+                        HStack(alignment: .top) {
+                            Text(viewStore.title)
+                                .font(Font.system(.largeTitle, design: .rounded).weight(.medium))
+                                .frame(height: 140)
+                                .minimumScaleFactor(0.3)
+                            Spacer()
+                        }
+
+                        getAnswersView(options: randomIndices.map { viewStore.state.options[$0] })
                     }
+                    .disabled(viewStore.hasAnswer)
+                    .padding()
+
+                    Color.clear.frame(height: 60)
 
                     Button(action: {
                         if viewStore.hasAnswer {
@@ -221,7 +203,6 @@ struct QuizQuestionView: View {
                     .zIndex(0.1)
                     .animation(.none)
                 }
-                .frame(minHeight: buttonHeight * 2, alignment: .bottom)
             }
             .overlay(
                 Group {
@@ -289,7 +270,7 @@ struct QuizQuestionView_Previews: PreviewProvider {
     static var previews: some View {
         QuizQuestionView(
             store: Store(
-                initialState: QuizQuestionState(question: .placeholder1, answer: Answer(isCorrect: true)),
+                initialState: QuizQuestionState(question: .placeholder1, answer: Answer(isCorrect: false)),
                 reducer: quizQuestionReducer,
                 environment: QuizQuestionEnvironment()
             )
