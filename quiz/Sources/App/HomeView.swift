@@ -30,7 +30,7 @@ let homeViewReducer = Reducer<HomeViewState, HomeViewAction, HomeViewEnv> { stat
 
     return .none
 }
-.debugActions("🏡 HomeView: ")
+.debugActions("🏡 HomeView")
 
 struct HomeView: View {
 

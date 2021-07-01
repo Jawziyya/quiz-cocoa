@@ -181,7 +181,8 @@ struct AppView_Previews: PreviewProvider {
                 reducer: appReducer,
                 environment: AppEnvironment(
                     mainQueue: DispatchQueue.main.eraseToAnyScheduler(),
-                    databaseClient: .noop)
+                    databaseClient: .noop
+                )
             )
         )
         .preferredColorScheme(.dark)
