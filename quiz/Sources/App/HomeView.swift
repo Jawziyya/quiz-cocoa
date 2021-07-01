@@ -41,16 +41,17 @@ struct HomeView: View {
     var body: some View {
         WithViewStore(store) { viewStore in
             VStack {
+                Spacer(minLength: 10)
                 Text("Quiz")
-                    .padding()
-                    .foregroundColor(Colors.text)
+                    .foregroundColor(Color(.label))
                     .font(Font.system(size: 80, weight: .heavy, design: .monospaced).smallCaps())
 
                 Spacer()
 
-                Image("space")
+                Image("bird")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+                    .padding()
 
                 Spacer()
 
@@ -80,12 +81,24 @@ struct HomeView: View {
                 }
                 .padding()
             }
+            .background(Color(.systemBackground).edgesIgnoringSafeArea(.all))
         }
     }
 }
 
 struct HomeView_Previews: PreviewProvider {
     static var previews: some View {
-        HomeView()
+        let store = HomeView.Store(
+            initialState: HomeViewState(),
+            reducer: homeViewReducer,
+            environment: ()
+        )
+
+        return Group {
+            HomeView(store: store)
+                .environment(\.colorScheme, .dark)
+            HomeView(store: store)
+                .environment(\.colorScheme, .light)
+        }
     }
 }

@@ -33,7 +33,7 @@ struct QuizQuestionState: Equatable, Hashable {
         self.question = question
         self.options = zip(question.options, ["table", "bird", "space", "cat"])
             .map { option, imageName in
-                QuizAnswerState(option: option, viewModel: .text(option), isSelected: false)
+                QuizAnswerState(option: option, viewModel: .textAndImage(text: option, imageName: imageName, imageType: .bundled), isSelected: false)
             }
         self.answer = answer
     }
