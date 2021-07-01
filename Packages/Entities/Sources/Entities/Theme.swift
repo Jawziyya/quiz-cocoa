@@ -28,6 +28,6 @@ public struct Theme: Hashable, Decodable, Identifiable {
     }
 
     public static var sira: Theme {
-        .init(id: 1, title: "Sira", questions: Question.testData)
+        .init(id: 2, title: "Sira", questions: Question.testData)
     }
 }

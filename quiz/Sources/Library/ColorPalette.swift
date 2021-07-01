@@ -27,7 +27,7 @@ enum Colors {
     }
 
     static var text: Color {
-        Color(.label)
+        Color(#colorLiteral(red: 0.1529411765, green: 0.1529411765, blue: 0.1529411765, alpha: 1))
     }
 
     static var secondaryText: Color {
