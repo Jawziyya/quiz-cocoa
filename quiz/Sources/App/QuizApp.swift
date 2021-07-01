@@ -15,7 +15,7 @@ struct QuizApp: App {
 
   var body: some Scene {
     WindowGroup {
-        AppView(store: self.appDelegate.store)
+        HomeView(store: appDelegate.store)
             .environmentObject(GameKitHelper.shared)
             .onAppear {
                 GameKitHelper.shared.authenticateLocalPlayer()

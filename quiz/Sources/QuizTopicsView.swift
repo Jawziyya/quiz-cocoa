@@ -12,55 +12,40 @@ import Entities
 import DatabaseClient
 import Combine
 
-struct AppState: Equatable {
-    var appDelegate = AppDelegateState()
+struct QuizTopicsState: Equatable {
     let topics: [Topic]
     var selectedTheme: Theme?
     var selectedQuizState: QuizState?
 }
 
-enum AppAction: Equatable {
-    case appDelegate(AppDelegateAction)
+enum QuizTopicsAction: Equatable {
+    case home
     case showTheme(Theme?)
     case quiz(QuizAction)
     case finish
 }
 
-struct AppEnvironment {
+struct QuizTopicsEnvironment {
     let mainQueue: AnySchedulerOf<DispatchQueue>
     let databaseClient: DatabaseClient
 }
 
-let appReducer = Reducer.combine(
-    appDelegateReducer
-        .pullback(
-            state: \.appDelegate,
-            action: /AppAction.appDelegate,
-            environment: { env in
-                .init(databaseClient: env.databaseClient)
-            }
-        ),
+let quizTopicsReducer = Reducer.combine(
     quizReducer
         .optional()
         .pullback(
             state: \.selectedQuizState,
-            action: /AppAction.quiz,
+            action: /QuizTopicsAction.quiz,
             environment: { env in
                 QuizEnvironment(databaseClient: env.databaseClient)
             }
         ),
-    Reducer<AppState, AppAction, AppEnvironment> { state, action, env in
+    Reducer<QuizTopicsState, QuizTopicsAction, QuizTopicsEnvironment> { state, action, env in
 
         switch action {
 
-        case .appDelegate(.didFinishLaunching):
-            return .merge(
-                env.databaseClient.migrate
-                    .ignoreOutput()
-                    .ignoreFailure()
-                    .eraseToEffect()
-                    .fireAndForget()
-            )
+        case .home:
+            return .none
 
         case .showTheme(let theme):
             if let theme = theme {
@@ -93,22 +78,22 @@ let appReducer = Reducer.combine(
         }
     }
 )
-.debugActions("AppView", actionFormat: .labelsOnly)
+.debugActions("QuizTopicsView", actionFormat: .labelsOnly)
 
-struct AppView: View {
+struct QuizTopicsView: View {
 
-    typealias QuizTopicsStore = Store<AppState, AppAction>
+    typealias QuizTopicsStore = Store<QuizTopicsState, QuizTopicsAction>
 
     let store: QuizTopicsStore
-    @ObservedObject var viewStore: ViewStore<ViewState, AppAction>
+    @ObservedObject var viewStore: ViewStore<QuizTopicsViewState, QuizTopicsAction>
 
-    struct ViewState: Equatable {
+    struct QuizTopicsViewState: Equatable {
         var selectedTheme: Theme?
     }
 
     init(store: QuizTopicsStore) {
         self.store = store
-        viewStore = ViewStore(store.scope(state: { ViewState(selectedTheme: $0.selectedTheme) }))
+        viewStore = ViewStore(store.scope(state: { QuizTopicsViewState(selectedTheme: $0.selectedTheme) }))
     }
 
     var body: some View {
@@ -132,12 +117,12 @@ struct AppView: View {
                 .fullScreenCover(
                     item: self.viewStore.binding(
                         get: \.selectedTheme,
-                        send: AppAction.showTheme
+                        send: QuizTopicsAction.showTheme
                     )
                 ) { theme in
                     IfLetStore(
                         self.store.scope(
-                            state: \.selectedQuizState, action: AppAction.quiz),
+                            state: \.selectedQuizState, action: QuizTopicsAction.quiz),
                         then: QuizView.init(store:)
                     )
                 }
@@ -175,11 +160,11 @@ struct AppView: View {
 
 struct AppView_Previews: PreviewProvider {
     static var previews: some View {
-        AppView(
+        QuizTopicsView(
             store: Store(
-                initialState: AppState(topics: [Topic.placeholder, .placeholder, .placeholder]),
-                reducer: appReducer,
-                environment: AppEnvironment(
+                initialState: QuizTopicsState(topics: [Topic.placeholder, .placeholder, .placeholder]),
+                reducer: quizTopicsReducer,
+                environment: QuizTopicsEnvironment(
                     mainQueue: DispatchQueue.main.eraseToAnyScheduler(),
                     databaseClient: .noop)
             )
