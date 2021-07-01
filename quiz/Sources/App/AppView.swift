@@ -2,43 +2,65 @@
 //
 //  quiz
 //  
-//  Created on 07.03.2021
-//  
+//  Created on 22.03.2021
+//  Copyright © 2021 Al Jawziyya. All rights reserved.
 //  
 
 import SwiftUI
 import ComposableArchitecture
 import Entities
+import DatabaseClient
+import Combine
 
-struct QuizTopicsState: Equatable {
+struct AppState: Equatable {
+    var appDelegate = AppDelegateState()
     let topics: [Topic]
     var selectedTheme: Theme?
     var selectedQuizState: QuizState?
 }
 
-enum QuizTopicsAction: Equatable {
+enum AppAction: Equatable {
+    case appDelegate(AppDelegateAction)
     case showTheme(Theme?)
     case quiz(QuizAction)
     case finish
 }
 
-struct QuizTopicsEnvironment {
-    var mainQueue: AnySchedulerOf<DispatchQueue>
+struct AppEnvironment {
+    let mainQueue: AnySchedulerOf<DispatchQueue>
+    let databaseClient: DatabaseClient
 }
 
-let quizTopicsReducer = Reducer.combine(
+let appReducer = Reducer.combine(
+    appDelegateReducer
+        .pullback(
+            state: \.appDelegate,
+            action: /AppAction.appDelegate,
+            environment: { env in
+                .init(databaseClient: env.databaseClient)
+            }
+        ),
     quizReducer
         .optional()
         .pullback(
             state: \.selectedQuizState,
-            action: /QuizTopicsAction.quiz,
-            environment: { asd in
-                QuizEnvironment()
+            action: /AppAction.quiz,
+            environment: { env in
+                QuizEnvironment(databaseClient: env.databaseClient)
             }
         ),
-    Reducer<QuizTopicsState, QuizTopicsAction, QuizTopicsEnvironment> { state, action, env in
+    Reducer<AppState, AppAction, AppEnvironment> { state, action, env in
 
         switch action {
+
+        case .appDelegate(.didFinishLaunching):
+            return .merge(
+                env.databaseClient.migrate
+                    .ignoreOutput()
+                    .ignoreFailure()
+                    .eraseToEffect()
+                    .fireAndForget()
+            )
 
         case .showTheme(let theme):
             if let theme = theme {
@@ -50,8 +72,12 @@ let quizTopicsReducer = Reducer.combine(
         // This will be called by QuizView on `Continue` button tap.
         // The navigation view will be popped and resources will be disposed after some delay in .finish case ↓
         case .quiz(.finish):
-//            state.selectedTheme = nil
-//            state.selectedQuizState?.isPresented = false
+            let quizState = state.selectedQuizState
+            if quizState?.progress == 100 && quizState?.score == quizState?.questionsComplete {
+                GameKitHelper.shared.reportProgress()
+            }
+
+            state.selectedTheme = nil
             return Effect(value: .finish)
                 .delay(for: 0.3, scheduler: env.mainQueue.eraseToAnyScheduler())
                 .eraseToEffect()
@@ -59,7 +85,6 @@ let quizTopicsReducer = Reducer.combine(
         // Dispose the resources.
         case .finish:
             state.selectedQuizState = nil
-            state.selectedTheme = nil
             return .none
 
         default:
@@ -68,14 +93,14 @@ let quizTopicsReducer = Reducer.combine(
         }
     }
 )
-.debugActions("QuizTopicsView", actionFormat: .labelsOnly)
+.debugActions("AppView", actionFormat: .labelsOnly)
 
-struct QuizTopicsView: View {
+struct AppView: View {
 
-    typealias QuizTopicsStore = Store<QuizTopicsState, QuizTopicsAction>
+    typealias QuizTopicsStore = Store<AppState, AppAction>
 
     let store: QuizTopicsStore
-    @ObservedObject var viewStore: ViewStore<ViewState, QuizTopicsAction>
+    @ObservedObject var viewStore: ViewStore<ViewState, AppAction>
 
     struct ViewState: Equatable {
         var selectedTheme: Theme?
@@ -83,7 +108,7 @@ struct QuizTopicsView: View {
 
     init(store: QuizTopicsStore) {
         self.store = store
-        viewStore = ViewStore(store.scope(state: { ViewState.init(selectedTheme: $0.selectedTheme) }))
+        viewStore = ViewStore(store.scope(state: { ViewState(selectedTheme: $0.selectedTheme) }))
     }
 
     var body: some View {
@@ -107,16 +132,31 @@ struct QuizTopicsView: View {
                 .fullScreenCover(
                     item: self.viewStore.binding(
                         get: \.selectedTheme,
-                        send: QuizTopicsAction.showTheme
+                        send: AppAction.showTheme
                     )
                 ) { theme in
                     IfLetStore(
                         self.store.scope(
-                            state: \.selectedQuizState, action: QuizTopicsAction.quiz),
+                            state: \.selectedQuizState, action: AppAction.quiz),
                         then: QuizView.init(store:)
                     )
                 }
                 .listStyle(InsetGroupedListStyle())
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        ZStack {
+                            if GameKitHelper.shared.enabled {
+                                Button(action: {
+                                    GameKitHelper.shared.authenticateLocalPlayer()
+                                }, label: {
+                                    Image(systemName: "list.star")
+                                })
+                            } else {
+                                Color.clear
+                            }
+                        }
+                    }
+                }
                 .navigationTitle(Text("topics.title", comment: "Topic screen title."))
             }
         }
@@ -133,13 +173,16 @@ struct QuizTopicsView: View {
 
 }
 
-struct QuizTopicsView_Previews: PreviewProvider {
+struct AppView_Previews: PreviewProvider {
     static var previews: some View {
-        QuizTopicsView(
+        AppView(
             store: Store(
-                initialState: QuizTopicsState(topics: [Topic.placeholder, .placeholder, .placeholder]),
-                reducer: quizTopicsReducer,
-                environment: QuizTopicsEnvironment(mainQueue: DispatchQueue.main.eraseToAnyScheduler()))
+                initialState: AppState(topics: [Topic.placeholder, .placeholder, .placeholder]),
+                reducer: appReducer,
+                environment: AppEnvironment(
+                    mainQueue: DispatchQueue.main.eraseToAnyScheduler(),
+                    databaseClient: .noop)
+            )
         )
         .preferredColorScheme(.dark)
     }

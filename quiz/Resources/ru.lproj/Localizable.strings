@@ -14,5 +14,6 @@
 "quiz.check" = "Проверить";
 "quiz.continue" = "Продолжить";
 "quiz.correct-title" = "Замечательно!";
-"quiz.incorrect-title %@" = "Правильное решение: %@";
+"quiz.incorrect-title" = "Правильное решение";
 "quiz.score" = "Счёт";
+"quiz.cancellation-alert.title" = "Вы уверены, что хотите завершить?";
