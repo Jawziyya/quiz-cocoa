@@ -14,8 +14,10 @@ import ComposableArchitecture
 class QuizAnswerTests: XCTestCase {
 
     func testAnswerSelection() {
+        let option = Option.placeholder
+
         let store = TestStore(
-            initialState: QuizAnswerState(option: "option", viewModel: .text("option")),
+            initialState: QuizAnswerState(option: option, viewModel: .text("option")),
             reducer: quizAnswerReducer,
             environment: ()
         )

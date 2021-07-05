@@ -11,7 +11,7 @@
         }
       },
       {
-        "package": "GRDB",
+        "package": "GRDB.swift",
         "repositoryURL": "https://github.com/groue/GRDB.swift",
         "state": {
           "branch": null,
@@ -20,7 +20,7 @@
         }
       },
       {
-        "package": "Lottie",
+        "package": "lottie-ios",
         "repositoryURL": "https://github.com/airbnb/lottie-ios",
         "state": {
           "branch": null,

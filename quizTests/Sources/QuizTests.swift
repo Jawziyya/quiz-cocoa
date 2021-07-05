@@ -1,10 +1,10 @@
 //
 //
 //  quizTests
-//  
+//
 //  Created on 14.03.2021
 //  Copyright © 2021 Al Jawziyya. All rights reserved.
-//  
+//
 
 import XCTest
 import ComposableArchitecture
@@ -19,28 +19,45 @@ class QuizTests: XCTestCase {
 
     func createTestStore() -> TestStore<QuizState, QuizState, QuizAction, QuizAction, QuizEnvironment> {
         TestStore(
-            initialState: QuizState(theme: theme, quizQuestion: QuizQuestionState(question: question1), score: 0, progress: 0, questionsComplete: 0, isPresented: true, presentCancellationAlert: false),
+            initialState:
+                QuizState(
+                    theme: theme,
+                    question: QuizQuestionState(question: question1, answer: .none),
+                    progress: QuizProgressViewState(progress: 0, score: 0),
+                    time: 0,
+                    timeProgress: 0,
+                    questionsComplete: 0,
+                    presentCancellationAlert: false
+                )
+            ,
             reducer: quizReducer,
-            environment: QuizEnvironment()
+            environment: QuizEnvironment(databaseClient: .noop)
         )
     }
 
     func testQuizHasCorrectScore() {
         let store = createTestStore()
-        store.assert(.send(.quizQuestion(.continueFlow), { state in
-            state.quizQuestion = .init(question: self.question2)
-        }))
+        store.assert(
+            .send(.quizQuestion(.continueFlow), { state in
+                state.question = .init(question: self.question2)
+            }),
+            .receive(.finish)
+        )
     }
 
     func testQuizHasCorrectProgress() {
         let store = createTestStore()
         let answer = Answer(isCorrect: true)
-        store.assert(.send(.quizQuestion(.commitAnswer(answer)), { state in
-            state.quizQuestion = .init(question: self.question1, answer: answer)
-            state.score = 1
-            state.questionsComplete = 1
-            state.progress = CGFloat(state.questionsComplete) / CGFloat(state.theme.questions.count) * 100
-        }))
+        store.assert(
+            .send(.quizQuestion(.commitAnswer(answer)), { state in
+                state.question = .init(question: self.question1, answer: answer)
+                state.progress = .init(
+                    progress: CGFloat(state.questionsComplete) / CGFloat(state.theme.questions.count) * 100,
+                    score: 50
+                )
+                state.questionsComplete = 1
+            })
+        )
     }
 
     func testQuizHasCorrectNextQuestionAndProgress() {
@@ -48,24 +65,21 @@ class QuizTests: XCTestCase {
         let incorrectAnswer = Answer(isCorrect: false)
 
         store.assert(
-
             .send(.quizQuestion(.commitAnswer(incorrectAnswer))) { state in
-                state.quizQuestion = .init(question: self.question1, answer: incorrectAnswer)
-                state.progress = 50
+                state.question = .init(question: self.question1, answer: incorrectAnswer)
+                state.progress = .init(progress: 50, score: 0)
                 state.questionsComplete = 1
-                state.score = 0
             },
 
             .send(.quizQuestion(.continueFlow)) { state in
-                state.quizQuestion = .init(question: self.question2, answer: nil)
+                state.question = .init(question: self.question2, answer: .init(isCorrect: false))
             },
 
             .send(.quizQuestion(.commitAnswer(incorrectAnswer))) { state in
-                state.progress = 100
+                state.progress = .init(progress: 100, score: 0)
                 state.questionsComplete = 2
-                state.quizQuestion = .init(question: self.question2, answer: incorrectAnswer)
+                state.question = .init(question: self.question2, answer: incorrectAnswer)
             }
-
         )
     }
 
