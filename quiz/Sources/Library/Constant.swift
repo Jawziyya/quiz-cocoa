@@ -13,4 +13,6 @@ enum Constant {
     static var cornerRadius: CGFloat = 10
     static var bottomInset: CGFloat = 0
 
+    static let correctAnswerPoints = 50
+
 }

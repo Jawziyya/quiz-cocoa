@@ -15,11 +15,13 @@ struct QuizApp: App {
 
   var body: some Scene {
     WindowGroup {
-        HomeView(store: appDelegate.store)
-            .environmentObject(GameKitHelper.shared)
-            .onAppear {
-                GameKitHelper.shared.authenticateLocalPlayer()
-            }
+        NavigationView {
+            HomeView(store: appDelegate.store)
+                .environmentObject(GameKitHelper.shared)
+                .onAppear {
+                    GameKitHelper.shared.authenticateLocalPlayer()
+                }
+        }
     }
   }
 }

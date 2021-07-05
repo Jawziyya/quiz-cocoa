@@ -8,7 +8,7 @@
 
 import Foundation
 
-public enum DifficultyLevel: Int, CaseIterable, Decodable {
+public enum DifficultyLevel: Int, CaseIterable, Codable {
     case easy
     case normal
 }

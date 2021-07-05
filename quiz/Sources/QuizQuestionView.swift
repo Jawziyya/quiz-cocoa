@@ -10,15 +10,13 @@ import SwiftUI
 import Entities
 import ComposableArchitecture
 
-typealias Option = Question.Option
-
 private func getRandomIndices() -> [Int] {
     Array(0..<4).shuffled()
 }
 
 private var randomIndices: [Int] = getRandomIndices()
 
-struct Answer: Identifiable, Equatable, Hashable {
+struct Answer: Identifiable, Equatable, Hashable, Codable {
     let isCorrect: Bool
 
     var id: String {
@@ -31,9 +29,11 @@ struct QuizQuestionState: Equatable, Hashable {
 
     init(question: Question, answer: Answer? = nil) {
         self.question = question
-        self.options = zip(question.options, ["table", "bird", "space", "cat"])
-            .map { option, imageName in
-                QuizAnswerState(option: option, viewModel: .textAndImage(text: option, imageName: imageName, imageType: .bundled), isSelected: false)
+        self.options = zip(question.answers, ["table", "bird", "space", "cat"])
+            .map { answer, imageName -> QuizAnswerState in
+                let viewModel = QuizAnswerViewModel.text(answer.text)
+//                let viewModel = QuizAnswerViewModel.textAndImage(text: option, imageName: imageName, imageType: .bundled)
+                return QuizAnswerState(option: answer, viewModel: viewModel, isSelected: false)
             }
         self.answer = answer
     }
@@ -43,17 +43,33 @@ struct QuizQuestionState: Equatable, Hashable {
     var title: String { question.title }
 
     func getAnswer() -> Answer {
-        let selection = Set(options.filter(\.isSelected).map(\.option))
-        return Answer(isCorrect: selection.subtracting(Set(question.answers)).isEmpty)
+        if question.hasCorrectAnswer && question.hasMoreThanOneCorrectAnswer == false, let selectedOption = options.first(where: \.isSelected) {
+            return Answer(isCorrect: selectedOption.option.isCorrect)
+        } else if question.hasMoreThanOneCorrectAnswer {
+            let selection = Set(options.filter(\.isSelected).map(\.option))
+            return Answer(isCorrect: selection.subtracting(Set(question.answers)).isEmpty)
+        } else {
+            return .init(isCorrect: false)
+        }
     }
 
-    func getCorrectAnswer() -> String {
-        question.answers.joined(separator: ", ")
+    func getCorrectAnswer() -> [Option] {
+        question.answers.filter(\.isCorrect)
+    }
+
+    func getCorrectAnswerDescription() -> String {
+        if question.hasMoreThanOneCorrectAnswer {
+            return getCorrectAnswer().reduce("", { $0 + ", \($1.text)" })
+        } else {
+            return getCorrectAnswer()[0].text
+        }
     }
 
     var canCommit = false
     var showComplainMenu = false
     var answer: Answer?
+
+    var timeProgress: Double = 0
 
     var hasAnswer: Bool {
         answer != nil
@@ -143,7 +159,7 @@ struct QuizQuestionView: View {
                 if viewStore.hasAnswer {
                     AnswerIndicatorView(
                         answerIsCorrect: viewStore.answerIsCorrect,
-                        correctAnswer: viewStore.state.getCorrectAnswer(),
+                        correctAnswer: viewStore.state.getCorrectAnswerDescription(),
                         complain: {
                             viewStore.send(.complain)
                         }
@@ -181,10 +197,9 @@ struct QuizQuestionView: View {
                             return
                         }
 
-                        guard viewStore.canCommit else {
-                            return
+                        if viewStore.canCommit {
+                            viewStore.send(.commitAnswer(viewStore.state.getAnswer()))
                         }
-                        viewStore.send(.commitAnswer(viewStore.state.getAnswer()))
                     }, label: {
                         HStack {
                             Spacer()
@@ -198,6 +213,17 @@ struct QuizQuestionView: View {
                     .opacity(viewStore.canCommit ? 1 : 0.5)
                     .disabled(!viewStore.canCommit)
                     .buttonStyle(PressDownButtonStyle(insets: UIEdgeInsets(top: 0, left: 0, bottom: 2, right: 0), backgroundColor: viewStore.hasAnswer ? viewStore.answerIsCorrect ? Colors.green : Colors.red : Colors.blue))
+                    .overlay(
+                        ZStack {
+                            if viewStore.hasAnswer {
+                                Color.clear
+                            } else {
+                                LinearProgress(progress: CGFloat(viewStore.timeProgress), foregroundColor: Color.white.opacity(0.2), cornerRadius: Constant.cornerRadius)
+                                    .animation(.easeInOut)
+                                    .allowsHitTesting(false)
+                            }
+                        }
+                    )
                     .padding(.horizontal)
                     .frame(height: buttonHeight, alignment: .bottom)
                     .zIndex(0.1)
@@ -209,7 +235,7 @@ struct QuizQuestionView: View {
                     if viewStore.hasAnswer && viewStore.answerIsCorrect {
                         LottieView(name: "confetti\(Int.random(in: 1...4))", loopMode: .playOnce)
                             .edgesIgnoringSafeArea(.all)
-                            .disabled(true)
+                            .allowsHitTesting(false)
                             .zIndex(1)
                     }
                 }
@@ -270,7 +296,7 @@ struct QuizQuestionView_Previews: PreviewProvider {
     static var previews: some View {
         QuizQuestionView(
             store: Store(
-                initialState: QuizQuestionState(question: .placeholder1, answer: Answer(isCorrect: false)),
+                initialState: QuizQuestionState(question: .placeholder1, answer: nil),
                 reducer: quizQuestionReducer,
                 environment: QuizQuestionEnvironment()
             )

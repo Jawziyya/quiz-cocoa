@@ -48,9 +48,9 @@ let quizTopicsReducer = Reducer.combine(
             return .none
 
         case .showTheme(let theme):
-            if let theme = theme {
+            if let theme = theme, let question = theme.questions.first {
                 state.selectedTheme = theme
-                state.selectedQuizState = .init(theme: theme, quizQuestion: QuizQuestionState(question: .placeholder1))
+                state.selectedQuizState = .init(theme: theme, question: QuizQuestionState(question: question))
             }
             return .none
 
@@ -58,7 +58,7 @@ let quizTopicsReducer = Reducer.combine(
         // The navigation view will be popped and resources will be disposed after some delay in .finish case ↓
         case .quiz(.finish):
             let quizState = state.selectedQuizState
-            if quizState?.progress == 100 && quizState?.score == quizState?.questionsComplete {
+            if quizState?.progress?.progress == 100 && quizState?.progress?.score == quizState?.questionsComplete {
                 GameKitHelper.shared.reportProgress()
             }
 
@@ -98,52 +98,52 @@ struct QuizTopicsView: View {
 
     var body: some View {
         WithViewStore(self.store.scope(state: \.topics)) { viewStore in
-            NavigationView {
-                List {
-                    ForEach(viewStore.state) { topic in
-                        Section(header: Text(topic.title)) {
-                            ForEach(topic.themes) { theme in
-                                Button(action: {
-                                    viewStore.send(.showTheme(theme))
-                                }) {
-                                    Text(theme.title)
-                                        .padding(.vertical, 8)
-                                }
-                                .accentColor(Color(.label))
+            List {
+                ForEach(viewStore.state) { topic in
+                    Section(header: Text(topic.title)) {
+                        ForEach(topic.themes) { theme in
+                            Button(action: {
+                                viewStore.send(.showTheme(theme))
+                            }) {
+                                Text(theme.title)
+                                    .padding(.vertical, 8)
                             }
+                            .accentColor(Color(.label))
                         }
                     }
                 }
-                .fullScreenCover(
-                    item: self.viewStore.binding(
-                        get: \.selectedTheme,
-                        send: QuizTopicsAction.showTheme
-                    )
-                ) { theme in
-                    IfLetStore(
-                        self.store.scope(
-                            state: \.selectedQuizState, action: QuizTopicsAction.quiz),
-                        then: QuizView.init(store:)
-                    )
-                }
-                .listStyle(InsetGroupedListStyle())
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        ZStack {
-                            if GameKitHelper.shared.enabled {
-                                Button(action: {
-                                    GameKitHelper.shared.authenticateLocalPlayer()
-                                }, label: {
-                                    Image(systemName: "list.star")
-                                })
-                            } else {
-                                Color.clear
-                            }
-                        }
-                    }
-                }
-                .navigationTitle(Text("topics.title", comment: "Topic screen title."))
             }
+            .fullScreenCover(
+                item: self.viewStore.binding(
+                    get: \.selectedTheme,
+                    send: QuizTopicsAction.showTheme
+                )
+            ) { theme in
+                IfLetStore(
+                    self.store.scope(
+                        state: \.selectedQuizState,
+                        action: QuizTopicsAction.quiz
+                    ),
+                    then: QuizView.init(store:)
+                )
+            }
+            .listStyle(InsetGroupedListStyle())
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    ZStack {
+                        if GameKitHelper.shared.enabled {
+                            Button(action: {
+                                GameKitHelper.shared.authenticateLocalPlayer()
+                            }, label: {
+                                Image(systemName: "list.star")
+                            })
+                        } else {
+                            Color.clear
+                        }
+                    }
+                }
+            }
+            .navigationTitle(Text("topics.title", comment: "Topic screen title."))
         }
         .background(
             GeometryReader { proxy in

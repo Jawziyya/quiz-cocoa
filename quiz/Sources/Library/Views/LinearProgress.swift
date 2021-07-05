@@ -14,7 +14,7 @@ public struct LinearProgress: Animatable, View {
         case vertical
     }
 
-    /// Between 0 - 100
+    /// Between 0-1
     private var progress: CGFloat
 
     private let cornerRadius: CGFloat
@@ -57,7 +57,7 @@ public struct LinearProgress: Animatable, View {
     }
 
     private func needsToBeFilledArea(totalArea: CGFloat) -> CGFloat {
-        return totalArea * (100 - self.progress) / 100
+        return totalArea * (1 - self.progress) / 1
     }
 
     private func calculateOffset(totalArea: CGSize) -> CGSize {
@@ -95,8 +95,8 @@ struct LinearProgress_Previews: PreviewProvider {
 
     static var previews: some View {
         Group {
-            LinearProgress(progress: 100, gradient: LinearGradient.init(gradient: Gradient(colors: [Color(#colorLiteral(red: 0.4745098054, green: 0.8392156959, blue: 0.9764705896, alpha: 1)), Color(#colorLiteral(red: 0.5843137503, green: 0.8235294223, blue: 0.4196078479, alpha: 1))]), startPoint: .leading, endPoint: .trailing), backgroundColor: Color.clear, cornerRadius: 5, fillAxis: .horizontal)
-            LinearProgress(progress: 50, foregroundColor: Color.green)
+            LinearProgress(progress: 1, gradient: LinearGradient.init(gradient: Gradient(colors: [Color(#colorLiteral(red: 0.4745098054, green: 0.8392156959, blue: 0.9764705896, alpha: 1)), Color(#colorLiteral(red: 0.5843137503, green: 0.8235294223, blue: 0.4196078479, alpha: 1))]), startPoint: .leading, endPoint: .trailing), backgroundColor: Color.clear, cornerRadius: 5, fillAxis: .horizontal)
+            LinearProgress(progress: 0.5, foregroundColor: Color.green)
         }
         .previewLayout(.fixed(width: 200, height: 10))
     }

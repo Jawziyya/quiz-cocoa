@@ -8,6 +8,7 @@
 
 import SwiftUI
 import ComposableArchitecture
+import Entities
 
 enum ImageType {
     case bundled, system
@@ -103,10 +104,18 @@ struct QuizAnswerView: View {
 
 struct QuizAnswerView_Previews: PreviewProvider {
     static var previews: some View {
+        func getStore(vm: QuizAnswerViewModel) -> ViewStore<QuizAnswerState, QuizAnswerAction> {
+            return .init(Store(
+                initialState: QuizAnswerState(option: .placeholder, viewModel: vm),
+                reducer: quizAnswerReducer,
+                environment: ())
+            )
+        }
+
         return Group {
-            QuizAnswerView(store: .init(Store(initialState: QuizAnswerState(option: "Test", viewModel: .text("Test")), reducer: quizAnswerReducer, environment: ())))
-            QuizAnswerView(store: .init(Store(initialState: QuizAnswerState(option: "Test", viewModel: .image("table")), reducer: quizAnswerReducer, environment: ())))
-            QuizAnswerView(store: .init(Store(initialState: QuizAnswerState(option: "Test", viewModel: .textAndImage(text: "Test", imageName: "table")), reducer: quizAnswerReducer, environment: ())))
+            QuizAnswerView(store: getStore(vm: .text("Test")))
+            QuizAnswerView(store: getStore(vm: .image("table")))
+            QuizAnswerView(store: getStore(vm: .textAndImage(text: "Test", imageName: "table")))
         }
         .previewLayout(.fixed(width: 200, height: 200))
     }

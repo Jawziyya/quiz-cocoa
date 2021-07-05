@@ -18,13 +18,13 @@ struct TopicsId: Hashable, Identifiable {
 struct HomeViewState: Equatable {
     var appDelegateState = AppDelegateState()
     var topicsState: QuizTopicsState?
-    var topics: TopicsId?
 }
 
 enum HomeViewAction: Equatable {
     case appDelegate(AppDelegateAction)
 
-    case showTopics(TopicsId?)
+    case showTopics(Bool)
+    case displayTopics([Topic])
     case quizTopics(QuizTopicsAction)
 
     case aboutApp
@@ -44,21 +44,29 @@ let homeViewReducer = Reducer.combine(
                 .init(databaseClient: env.databaseClient)
             }
         ),
-    quizTopicsReducer
-        .optional()
-        .pullback(
-            state: \.topicsState,
-            action: /HomeViewAction.quizTopics,
-            environment: { env in
-                .init(mainQueue: env.mainQueue, databaseClient: env.databaseClient)
-            }),
     Reducer<HomeViewState, HomeViewAction, HomeViewEnv> { state, action, env in
 
         switch action {
 
-        case .showTopics(let id):
-            state.topics = id
-            state.topicsState = .init(topics: [Topic.placeholder], selectedTheme: .none, selectedQuizState: .none)
+        case .showTopics(let flag):
+            if flag {
+                return env.databaseClient
+                    .fetchTopics
+                    .replaceError(with: [])
+                    .map { topics in
+                        return HomeViewAction.displayTopics(topics)
+                    }
+                    .eraseToEffect()
+            } else {
+                state.topicsState = nil
+                return .none
+            }
+
+        case .displayTopics(let topics):
+            state.topicsState = .init(topics: topics, selectedTheme: .none, selectedQuizState: .none)
+            return .none
+
+        case .quizTopics(let action):
             return .none
 
         case .appDelegate(.didFinishLaunching):
@@ -75,7 +83,15 @@ let homeViewReducer = Reducer.combine(
 
         }
     }
-    .debugActions("🏡 HomeView")
+    .debugActions("🏡 Home", actionFormat: ActionFormat.labelsOnly)
+)
+.presents(
+    quizTopicsReducer,
+    state: \.topicsState,
+    action: /HomeViewAction.quizTopics,
+    environment: { env in
+        .init(mainQueue: env.mainQueue, databaseClient: env.databaseClient)
+    }
 )
 
 struct HomeView: View {
@@ -84,9 +100,13 @@ struct HomeView: View {
 
     let store: Store
 
+    struct HomeViewViewState: Equatable {
+        init(state: HomeViewState) { }
+    }
+
     var body: some View {
-        WithViewStore(store) { viewStore in
-            VStack {
+        WithViewStore(store.scope(state: HomeViewViewState.init(state:))) { viewStore in
+            ScrollView {
                 Spacer(minLength: 10)
                 Text("Quiz")
                     .foregroundColor(Color(.label))
@@ -103,7 +123,7 @@ struct HomeView: View {
 
                 VStack {
                     Button(action: {
-                        viewStore.send(.showTopics(TopicsId()))
+                        viewStore.send(.showTopics(true))
                     }, label: {
                         Text("Начать")
                             .padding()
@@ -128,19 +148,17 @@ struct HomeView: View {
                 .padding()
             }
             .background(Color(.systemBackground).edgesIgnoringSafeArea(.all))
-            .fullScreenCover(
-                item: viewStore.binding(
-                    get: \.topics,
-                    send: HomeViewAction.showTopics
-                )
-            ) { theme in
-                IfLetStore(
-                    self.store.scope(
-                        state: \.topicsState, action: HomeViewAction.quizTopics),
-                    then: QuizTopicsView.init(store:)
-                )
-            }
         }
+        .navigate(
+            using: store.scope(
+                state: \.topicsState,
+                action: HomeViewAction.quizTopics
+            ),
+            destination: QuizTopicsView.init(store:),
+            onDismiss: {
+                ViewStore(store.stateless).send(.showTopics(false))
+            }
+        )
     }
 }
 

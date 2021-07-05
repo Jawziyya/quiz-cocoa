@@ -10,22 +10,11 @@ import Foundation
 
 public struct Question: Equatable, Hashable, Identifiable, Decodable {
 
-    public static let testData: [Question] = {
-        let url = Bundle.main.url(forResource: "questions_ru", withExtension: "json")!
-        let data = try! Data(contentsOf: url)
-        let decoder = JSONDecoder()
-        return try! decoder.decode([Question].self, from: data)
-    }()
-
     public enum CodingKeys: String, CodingKey {
-        case id, title, description, reference, difficulty
-        case _options = "options", _answers = "answers", _theme_id = "theme_id"
+        case id, title, description, reference, difficulty, answers
+        case _theme_id = "theme_id"
     }
 
-    public typealias Option = String
-
-    let _options: String
-    let _answers: String
     let _theme_id: Int
 
     public let id: Int
@@ -35,37 +24,22 @@ public struct Question: Equatable, Hashable, Identifiable, Decodable {
     public let reference: String?
     public let difficulty: DifficultyLevel
 
-    public var options: [Option] {
-        _options.components(separatedBy: ";")
-    }
-
-    public var answers: [Option] {
-        let indices = _answers.components(separatedBy: ";")
-        if indices.isEmpty {
-            if let index = Int(_answers) {
-                return [options[index]]
-            } else {
-                return []
-            }
-        } else {
-            return indices.map { Int($0) ?? 0 }.map { options[$0] }
-        }
-    }
+    public let answers: [Option]
 
     public var hasCorrectAnswer: Bool {
-        answers.isEmpty == false
+        answers.filter(\.isCorrect).isEmpty == false
     }
 
     public var hasMoreThanOneCorrectAnswer: Bool {
-        answers.count > 1
+        answers.filter(\.isCorrect).count > 1
     }
 
     public static var placeholder1: Question {
-        testData[0]
+        Question(_theme_id: 1, id: 1, title: "", description: "", reference: "", difficulty: .easy, answers: [Option.init(id: 1, questionId: 1, text: "", isCorrect: true, image: nil)])
     }
 
     public static var placeholder2: Question {
-        testData[1]
+        placeholder1
     }
 
 }

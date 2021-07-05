@@ -11,66 +11,104 @@ import ComposableArchitecture
 import Entities
 import DatabaseClient
 
+let questionMaxTime: Double = 30
+
 struct QuizState: Equatable, Hashable {
     var theme: Theme
-    var quizQuestion: QuizQuestionState?
+    var question: QuizQuestionState?
+    var progress: QuizProgressViewState? = .init(progress: 0, score: 0)
 
-    var score = 0
-    var progress: CGFloat = 0
+    var time: Double = 0
+    var timeProgress: Double = 0
+
     var questionsComplete = 0 {
         didSet {
-            progress = CGFloat(questionsComplete) / CGFloat(theme.questions.count) * 100
+            let progress = CGFloat(questionsComplete) / CGFloat(theme.questions.count) * 1
+            let score = self.progress?.score ?? 0
+            self.progress = .init(progress: progress, score: score)
         }
     }
 
-    var isPresented = true
     var presentCancellationAlert = false
 }
 
 enum QuizAction: Equatable {
     case start
-    case quizQuestion(QuizQuestionAction)
     case finish
-    case dismiss
-    case cancel
+    case `continue`
+    case timerTick
+    case quizQuestion(QuizQuestionAction)
+    case quizProgress(QuizProgressViewAction)
 }
 
 struct QuizEnvironment {
+    let mainQueue = DispatchQueue.main.eraseToAnyScheduler()
     let quizQuestionEnvironment = QuizQuestionEnvironment()
     let databaseClient: DatabaseClient
 }
 
 let quizReducer = Reducer.combine(
     Reducer<QuizState, QuizAction, QuizEnvironment> { state, action, env in
+
+        struct TimerId: Hashable {}
+
         switch action {
 
+        case .timerTick:
+
+            defer {
+                state.question?.timeProgress = 1 - ((questionMaxTime - state.time) / questionMaxTime)
+            }
+
+            state.time += 1
+            if state.time >= questionMaxTime {
+                state.time = 0
+                state.questionsComplete += 1
+                return .merge(
+                    .cancel(id: TimerId()),
+                    .init(value: .quizQuestion(.continueFlow))
+                )
+            }
+            return .none
+
         case .start:
-            return .none
+            return .merge(
+                .cancel(id: TimerId()),
+                Effect.timer(
+                    id: TimerId(),
+                    every: 1,
+                    tolerance: .zero,
+                    on: env.mainQueue
+                )
+                .map { _ in .timerTick }
+            )
 
-        case .cancel:
+        case .continue:
+            state.presentCancellationAlert = false
+            return .init(value: .start)
+
+        case .quizProgress(.cancel):
             state.presentCancellationAlert = true
-            return .none
-
-        case .dismiss:
-//            state.isPresented = false
-            return .none
+            return Effect.cancel(id: TimerId())
 
         case .quizQuestion(.commitAnswer(let answer)):
             state.questionsComplete += 1
-            if answer.isCorrect {
-                state.score += 1
+            if answer.isCorrect, var progress = state.progress {
+                progress.score += Constant.correctAnswerPoints
+                state.progress = progress
             }
-            return .none
+            state.time = 0
+            return .cancel(id: TimerId())
 
         case .quizQuestion(.continueFlow):
             let questions = state.theme.questions
             if
-                let prev = state.quizQuestion?.question,
+                let prev = state.question?.question,
                 let index = questions.firstIndex(of: prev),
                 let question = questions[safe: index + 1]
             {
-                state.quizQuestion = .init(question: question)
-                return .none
+                state.question = .init(question: question)
+                return .init(value: .start)
             } else {
                 return .init(value: .finish)
             }
@@ -83,19 +121,26 @@ let quizReducer = Reducer.combine(
     quizQuestionReducer
       .optional()
       .pullback(
-        state: \.quizQuestion,
+        state: \.question,
         action: /QuizAction.quizQuestion,
         environment: { $0.quizQuestionEnvironment }
-      )
+      ),
+    quizProgressViewReducer
+        .optional()
+        .pullback(
+            state: \.progress,
+            action: /QuizAction.quizProgress,
+            environment: { _ in () }
+        )
 )
-.debugActions("QuizView", actionFormat: .labelsOnly)
+.debugActions("⁉️ QuizView", actionFormat: .labelsOnly)
 
 struct QuizView: View {
 
     struct State: Equatable {
         var question: QuizQuestionState?
         init(from state: QuizState) {
-            question = state.quizQuestion
+            question = state.question
         }
     }
 
@@ -115,48 +160,31 @@ struct QuizView: View {
     var body: some View {
         WithViewStore(store) { viewStore in
             VStack {
-                HStack(spacing: 16) {
-                    Button(action: {
-                        viewStore.send(.cancel)
-                    }) {
-                        Image(systemName: "xmark")
-                            .resizable()
-                            .frame(width: 18, height: 18)
-                            .contentShape(Rectangle().inset(by: -20))
-                    }
-                    
-                    LinearProgress(progress: viewStore.progress, foregroundColor: Color.accentColor, backgroundColor: Color.gray.opacity(0.15), cornerRadius: Constant.cornerRadius, fillAxis: .horizontal)
-                        .frame(height: 15)
-                        .animation(Animation.spring().speed(1.1))
-
-                    HStack {
-                        Text("quiz.score", comment: "Quiz score label.")
-                            .foregroundColor(Color.accentColor)
-                            +
-                            Text(": " + viewStore.score.description)
-                            .foregroundColor(Color.accentColor.darker(by: 10))
-                    }
-                    .font(Font.system(.headline, design: .monospaced))
-                }
-                .padding(.horizontal)
-                
                 IfLetStore(
                     self.store.scope(
-                        state: { $0.quizQuestion },
+                        state: \.progress,
+                        action: QuizAction.quizProgress
+                    ),
+                    then: QuizProgressView.init(store:)
+                )
+
+                IfLetStore(
+                    self.store.scope(
+                        state: { $0.question },
                         action: QuizAction.quizQuestion),
                     then: QuizQuestionView.init(store:)
                 )
             }
             .navigationBarTitle(Text(viewStore.theme.title), displayMode: .inline)
-            .onChange(of: viewStore.isPresented) { isPresented in
-                if !isPresented {
-                    self.presentationMode.wrappedValue.dismiss()
-                }
-            }
             .alert(isPresented: .constant(viewStore.presentCancellationAlert)) {
-                Alert(title: Text("Are you sure?"), primaryButton: Alert.Button.default(Text("common.yes", comment: "Yes"), action: {
+                Alert(title: Text("Are you sure?"), primaryButton: Alert.Button.default(Text("common.yes", comment: "YES"), action: {
                     viewStore.send(.finish)
-                }), secondaryButton: .cancel())
+                }), secondaryButton: .cancel(Text("common.no", comment: "NO"), action: {
+                    viewStore.send(.continue)
+                }))
+            }
+            .onAppear {
+                viewStore.send(.start)
             }
         }
     }
@@ -169,11 +197,11 @@ struct QuizView_Previews: PreviewProvider {
             store: Store(
                 initialState: QuizState(
                     theme: Theme.placeholder,
-                    quizQuestion: QuizQuestionState(question: .placeholder1, answer: Answer(isCorrect: true)),
-                    progress: 50
+                    question: QuizQuestionState(question: .placeholder1, answer: nil),
+                    progress: .init(progress: 30, score: 200)
                 ),
                 reducer: quizReducer,
-                environment: QuizEnvironment(databaseClient: DatabaseClient.live(url: URL(string: "")!))
+                environment: QuizEnvironment(databaseClient: DatabaseClient.noop)
             )
         )
     }

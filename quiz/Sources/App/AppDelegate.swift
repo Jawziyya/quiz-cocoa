@@ -109,8 +109,13 @@ extension HomeViewEnv {
             .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
             .appendingPathComponent("database", isDirectory: true)
         try fileManager.createDirectory(at: folderURL, withIntermediateDirectories: true)
-        let dbURL = folderURL.appendingPathComponent("db.sqlite")
-        let databaseClient = DatabaseClient.live(url: dbURL)
+        let cachingDbURL = folderURL.appendingPathComponent("db.sqlite")
+        let staticDbURL = Bundle.main.url(forResource: "db", withExtension: "sqlite")!
+
+        let databaseClient = DatabaseClient.live(
+            cacheDatabaseURL: cachingDbURL,
+            staticDatabaseURL: staticDbURL
+        )
 
         return HomeViewEnv(
             mainQueue: DispatchQueue.main.eraseToAnyScheduler(),
