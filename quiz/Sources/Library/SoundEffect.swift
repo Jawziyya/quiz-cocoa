@@ -34,6 +34,13 @@ extension AVAudioPlayer {
 enum SoundEffect {
     static let correct = AVAudioPlayer(file: "success1", type: .wav)
     static let incorrect = AVAudioPlayer(file: "error1", type: .wav)
+    static let timerTick = AVAudioPlayer(file: "tick", type: .m4a)
+
+    static func playTick() {
+        DispatchQueue.global(qos: .userInteractive).async {
+            timerTick?.play()
+        }
+    }
 
     static func playSuccess() {
         DispatchQueue.global(qos: .userInteractive).async {
