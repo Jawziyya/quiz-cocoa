@@ -162,7 +162,7 @@ struct HomeView: View {
             ),
             destination: QuizTopicsView.init(store:),
             onDismiss: {
-                ViewStore(store.stateless).send(.showTopics(false))
+                ViewStore(store).send(.showTopics(false))
             }
         )
     }
