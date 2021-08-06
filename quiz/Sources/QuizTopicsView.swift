@@ -80,6 +80,18 @@ let quizTopicsReducer = Reducer.combine(
 )
 .debugActions("QuizTopicsView", actionFormat: .labelsOnly)
 
+/**
+ Displays list of quiz themes grouped by their topics.
+
+ Topic 1
+  - Theme 1
+  - Theme 2
+
+ Topic 2
+  - Theme 1
+  - Theme 2
+  - Theme 3
+ */
 struct QuizTopicsView: View {
 
     typealias QuizTopicsStore = Store<QuizTopicsState, QuizTopicsAction>

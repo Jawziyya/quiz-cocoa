@@ -135,6 +135,11 @@ let quizReducer = Reducer.combine(
 )
 .debugActions("⁉️ QuizView", actionFormat: .labelsOnly)
 
+/**
+ Represents one Quiz with number of child questions.
+
+ Has progress view as top and QuizQuestionView as it's bottom.
+ */
 struct QuizView: View {
 
     struct State: Equatable {

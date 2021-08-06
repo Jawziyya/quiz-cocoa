@@ -23,6 +23,10 @@ let quizProgressViewReducer = Reducer<QuizProgressViewState, QuizProgressViewAct
     return .none
 }
 
+/**
+ Represents quiz progress with progress bar and points number.
+ Has a close button which triggers completion action on tap.
+ */
 struct QuizProgressView: View {
 
     typealias QuizProgressViewStore = Store<QuizProgressViewState, QuizProgressViewAction>

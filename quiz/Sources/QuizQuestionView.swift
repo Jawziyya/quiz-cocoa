@@ -147,6 +147,25 @@ let quizQuestionReducer = Reducer<QuizQuestionState,  QuizQuestionAction, QuizQu
     }
 )
 
+/**
+ This view represents one question and it's options.
+
+ It also includes a button at the bottom of the container (either `Commit answer` or `Continue`).
+
+
+ ------------
+   QUESTION
+    TITLE?
+
+ ⎡          ⎤
+   [1]  [2]
+   [3]  [4]
+ ⎣          ⎦
+
+   CONTINUE
+ ------------
+
+ */
 struct QuizQuestionView: View {
 
     let store: Store<QuizQuestionState, QuizQuestionAction>

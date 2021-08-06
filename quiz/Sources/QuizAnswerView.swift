@@ -47,6 +47,12 @@ let quizAnswerReducer = Reducer<QuizAnswerState, QuizAnswerAction, QuizAnswerEnv
     return .none
 }
 
+/**
+ Represents one answer option along others.
+
+ [1] [2]  <-- One of these items in grid.
+ [3] [4]
+ */
 struct QuizAnswerView: View {
 
     let store: ViewStore<QuizAnswerState, QuizAnswerAction>

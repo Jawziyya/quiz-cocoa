@@ -94,6 +94,12 @@ let homeViewReducer = Reducer.combine(
     }
 )
 
+/**
+ Root view of the application.
+
+ - Has app logo
+ - Shows main actions as Start Quiz, About app etc.
+ */
 struct HomeView: View {
 
     typealias Store = ComposableArchitecture.Store<HomeViewState, HomeViewAction>
