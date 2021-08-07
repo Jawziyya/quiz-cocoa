@@ -161,6 +161,7 @@ struct QuizTopicsView: View {
             GeometryReader { proxy in
                 Color.clear.onAppear {
                     let insets = proxy.safeAreaInsets
+                    Constant.quizImageCardSize = (proxy.size.width / 2.5).rounded(.up)
                     Constant.bottomInset = insets.bottom
                 }
             }

@@ -11,6 +11,8 @@ import UIKit
 enum Constant {
 
     static var cornerRadius: CGFloat = 10
+
+    static var quizImageCardSize: CGFloat = 0
     static var bottomInset: CGFloat = 0
 
     static let correctAnswerPoints = 50
