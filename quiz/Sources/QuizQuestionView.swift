@@ -90,6 +90,7 @@ enum QuizQuestionAction: Equatable {
     case commitAnswer(Answer)
     case complain
     case continueFlow
+    case timeout
 }
 
 struct QuizQuestionEnvironment {
@@ -141,6 +142,9 @@ let quizQuestionReducer = Reducer<QuizQuestionState,  QuizQuestionAction, QuizQu
 
         case .continueFlow:
             randomIndices = getRandomIndices()
+            return .none
+
+        case .timeout:
             return .none
 
         }
@@ -237,9 +241,11 @@ struct QuizQuestionView: View {
                             if viewStore.hasAnswer {
                                 Color.clear
                             } else {
-                                LinearProgress(progress: CGFloat(viewStore.timeProgress), foregroundColor: Color.white.opacity(0.2), cornerRadius: Constant.cornerRadius)
-                                    .animation(.easeInOut)
-                                    .allowsHitTesting(false)
+                                QuizQuestionProgressView(questionId: viewStore.question.id) {
+                                    viewStore.send(.timeout)
+                                }
+                                .equatable()
+                                .allowsHitTesting(false)
                             }
                         }
                     )

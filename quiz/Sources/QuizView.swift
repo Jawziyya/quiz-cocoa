@@ -18,9 +18,6 @@ struct QuizState: Equatable, Hashable {
     var question: QuizQuestionState?
     var progress: QuizProgressViewState? = .init(progress: 0, score: 0)
 
-    var time: Double = 0
-    var timeProgress: Double = 0
-
     var questionsComplete = 0 {
         didSet {
             let progress = CGFloat(questionsComplete) / CGFloat(theme.questions.count) * 1
@@ -36,7 +33,6 @@ enum QuizAction: Equatable {
     case start
     case finish
     case `continue`
-    case timerTick
     case quizQuestion(QuizQuestionAction)
     case quizProgress(QuizProgressViewAction)
 }
@@ -50,38 +46,10 @@ struct QuizEnvironment {
 let quizReducer = Reducer.combine(
     Reducer<QuizState, QuizAction, QuizEnvironment> { state, action, env in
 
-        struct TimerId: Hashable {}
-
         switch action {
 
-        case .timerTick:
-
-            defer {
-                state.question?.timeProgress = 1 - ((questionMaxTime - state.time) / questionMaxTime)
-            }
-
-            state.time += 1
-            if state.time >= questionMaxTime {
-                state.time = 0
-                state.questionsComplete += 1
-                return .merge(
-                    .cancel(id: TimerId()),
-                    .init(value: .quizQuestion(.continueFlow))
-                )
-            }
-            return .none
-
         case .start:
-            return .merge(
-                .cancel(id: TimerId()),
-                Effect.timer(
-                    id: TimerId(),
-                    every: 1,
-                    tolerance: .zero,
-                    on: env.mainQueue
-                )
-                .map { _ in .timerTick }
-            )
+            return .none
 
         case .continue:
             state.presentCancellationAlert = false
@@ -89,7 +57,7 @@ let quizReducer = Reducer.combine(
 
         case .quizProgress(.cancel):
             state.presentCancellationAlert = true
-            return Effect.cancel(id: TimerId())
+            return .none
 
         case .quizQuestion(.commitAnswer(let answer)):
             state.questionsComplete += 1
@@ -97,8 +65,7 @@ let quizReducer = Reducer.combine(
                 progress.score += Constant.correctAnswerPoints
                 state.progress = progress
             }
-            state.time = 0
-            return .cancel(id: TimerId())
+            return .none
 
         case .quizQuestion(.continueFlow):
             let questions = state.theme.questions
@@ -112,6 +79,9 @@ let quizReducer = Reducer.combine(
             } else {
                 return .init(value: .finish)
             }
+
+        case .quizQuestion(.timeout):
+            return .init(value: .quizQuestion(.continueFlow))
 
         default:
             return .none
