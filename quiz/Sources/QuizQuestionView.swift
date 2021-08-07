@@ -31,9 +31,27 @@ struct QuizQuestionState: Equatable, Hashable {
         self.question = question
         self.options = zip(question.answers, ["table", "bird", "space", "cat"])
             .map { answer, imageName -> QuizAnswerState in
-                let viewModel = QuizAnswerViewModel.text(answer.text)
-//                let viewModel = QuizAnswerViewModel.textAndImage(text: option, imageName: imageName, imageType: .bundled)
-                return QuizAnswerState(option: answer, viewModel: viewModel, isSelected: false)
+                let text = answer.text.isEmpty ? nil : answer.text
+                let vm: QuizAnswerViewModel
+
+                if let image = answer.image {
+                    let imageType: ImageType
+                    if let url = URL(string: image) {
+                        imageType = .remote(url)
+                    } else {
+                        imageType = .bundled(image)
+                    }
+
+                    if let text = text {
+                        vm = .textAndImage(text: text, image: imageType, positioning: .zStack)
+                    } else {
+                        vm = .image(imageType)
+                    }
+                } else {
+                    vm = .text(text ?? "")
+                }
+
+                return QuizAnswerState(option: answer, viewModel: vm, isSelected: false)
             }
         self.answer = answer
     }
@@ -179,6 +197,8 @@ struct QuizQuestionView: View {
     var body: some View {
         WithViewStore(store) { viewStore in
             ZStack(alignment: .bottom) {
+
+                // Answer indicator overlay view at the bottom.
                 if viewStore.hasAnswer {
                     AnswerIndicatorView(
                         answerIsCorrect: viewStore.answerIsCorrect,
@@ -206,12 +226,18 @@ struct QuizQuestionView: View {
                                 .minimumScaleFactor(0.3)
                             Spacer()
                         }
+                        .layoutPriority(1)
 
+                        Spacer()
+
+                        // Answer options
                         getAnswersView(options: randomIndices.map { viewStore.state.options[$0] })
+                            .layoutPriority(0.5)
                     }
                     .disabled(viewStore.hasAnswer)
                     .padding()
 
+                    Spacer()
                     Color.clear.frame(height: 60)
 
                     Button(action: {
@@ -253,6 +279,7 @@ struct QuizQuestionView: View {
                     .frame(height: buttonHeight, alignment: .bottom)
                     .zIndex(0.1)
                     .animation(.none)
+                    .layoutPriority(1)
                 }
             }
             .overlay(
@@ -286,9 +313,16 @@ struct QuizQuestionView: View {
 
         case .textAndImage:
             VStack(alignment: .center) {
-                HStack {
 
-                    ForEach(Array(randomIndices.prefix(2)), id: \.self) { idx in
+                LazyVGrid(
+                    columns: [
+                        .init(.fixed(Constant.quizImageCardSize), spacing: 10, alignment: .center),
+                        .init(.fixed(Constant.quizImageCardSize), spacing: 10, alignment: .center),
+                    ],
+                    alignment: HorizontalAlignment.center,
+                    spacing: 20) {
+
+                    ForEach(Array(randomIndices), id: \.self) { idx in
                         WithViewStore(
                             self.store.scope(
                                 state: { $0.options[idx] },
@@ -296,18 +330,9 @@ struct QuizQuestionView: View {
                             ), content: QuizAnswerView.init(store:)
                         )
                     }
+
                 }
 
-                HStack {
-                    ForEach(randomIndices.suffix(from: 2), id: \.self) { idx in
-                        WithViewStore(
-                            self.store.scope(
-                                state: { $0.options[idx] },
-                                action: { QuizQuestionAction.selectOption(index: idx, action: $0) }
-                            ), content: QuizAnswerView.init(store:)
-                        )
-                    }
-                }
             }
 
         default:

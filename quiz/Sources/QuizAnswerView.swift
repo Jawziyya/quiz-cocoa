@@ -10,14 +10,20 @@ import SwiftUI
 import ComposableArchitecture
 import Entities
 
-enum ImageType {
-    case bundled, system
+enum ImageType: Hashable, Equatable {
+    case bundled(String)
+    case system(String)
+    case remote(URL)
+}
+
+enum TextAndImagePositioning {
+    case vStack, zStack
 }
 
 enum QuizAnswerViewModel: Equatable, Hashable {
     case text(String)
-    case image(_ name: String, type: ImageType = .bundled)
-    case textAndImage(text: String, imageName: String, imageType: ImageType = .bundled)
+    case image(ImageType)
+    case textAndImage(text: String, image: ImageType, positioning: TextAndImagePositioning)
 }
 
 struct ImageAndTextView: View {
@@ -81,28 +87,81 @@ struct QuizAnswerView: View {
     @ViewBuilder
     private func getView(for type: QuizAnswerViewModel) -> some View {
         switch type {
+
         case .text(let text):
             Text(text)
-        case .image(let imageName, let type):
-            getImage(name: imageName, type: type)
-        case .textAndImage(let text, let imageName, let imageType):
-            VStack {
-                Text(text)
-                Spacer()
-                getImage(name: imageName, type: imageType)
-            }
+
+        case .image(let imageType):
+            getImage(imageType)
+
+        case .textAndImage:
+            getTextAndImageView(type: type)
+
         }
     }
 
     @ViewBuilder
-    func getImage(name: String, type: ImageType) -> some View {
+    func getTextAndImageView(type: QuizAnswerViewModel) -> some View {
         switch type {
-        case .bundled:
+
+        case .text, .image:
+            EmptyView()
+
+        case .textAndImage(let text, let imageType, let positioning):
+            switch positioning {
+            case .vStack:
+                VStack {
+                    Text(text)
+                    Spacer()
+                    getImage(imageType)
+                }
+
+            case .zStack:
+                ZStack(alignment: Alignment.top) {
+                    getImage(imageType)
+                    Text(text)
+                        .padding(4)
+                        .background(Colors.secondaryBackground.cornerRadius(4))
+                }
+            }
+
+        }
+    }
+
+    @ViewBuilder
+    func getImage(_ type: ImageType) -> some View {
+        switch type {
+
+        case .bundled(let name):
             Image(name)
                 .resizable()
+                .aspectRatio(contentMode: .fill)
+
+        case .system(let name):
+            Image(systemName: name)
+                .resizable()
                 .aspectRatio(contentMode: .fit)
-        case .system:
-            Image(systemName: name).resizable().aspectRatio(contentMode: .fit)
+
+        case .remote(let url):
+            AsyncImage(
+                url: url,
+                scale: 1,
+                content: { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                },
+                placeholder: {
+                    Image(systemName: "photo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .padding()
+                        .foregroundColor(Color.secondary)
+                }
+            )
+            .equatable()
+            .frame(width: Constant.quizImageCardSize * 0.8, height: Constant.quizImageCardSize * 0.8)
+
         }
     }
 
@@ -119,9 +178,14 @@ struct QuizAnswerView_Previews: PreviewProvider {
         }
 
         return Group {
-            QuizAnswerView(store: getStore(vm: .text("Test")))
-            QuizAnswerView(store: getStore(vm: .image("table")))
-            QuizAnswerView(store: getStore(vm: .textAndImage(text: "Test", imageName: "table")))
+//            QuizAnswerView(store: getStore(vm: .text("Test")))
+//            QuizAnswerView(store: getStore(vm: .image(.bundled("table"))))
+//            QuizAnswerView(store: getStore(vm: .textAndImage(text: "Test", image: .bundled("table"))))
+//            QuizAnswerView(store: getStore(vm: .image(ImageType.remote(istanbulMosqueImageURL))))
+            QuizAnswerView(store: getStore(vm: .textAndImage(
+                text: "Istanbul",
+                image: .remote(URL(string: "https://images.unsplash.com/photo-1527838832700-5059252407fa?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=943&q=80")!), positioning: .zStack))
+            )
         }
         .previewLayout(.fixed(width: 200, height: 200))
     }
