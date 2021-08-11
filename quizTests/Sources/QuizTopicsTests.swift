@@ -14,7 +14,7 @@ import DatabaseClient
 
 class QuizTopicsTests: XCTestCase {
 
-    let testScheduler = DispatchQueue.test.eraseToAnyScheduler()
+    let testScheduler = DispatchQueue.testScheduler.eraseToAnyScheduler()
 
     func testTopicsListSelection() {
         let topics: [Topic] = [.placeholder, .placeholder, .placeholder]
@@ -32,8 +32,6 @@ class QuizTopicsTests: XCTestCase {
                 theme: theme,
                 question: QuizQuestionState(question: question, answer: .none),
                 progress: QuizProgressViewState(progress: 0, score: 0),
-                time: 0,
-                timeProgress: 0,
                 questionsComplete: 0,
                 presentCancellationAlert: false
             )

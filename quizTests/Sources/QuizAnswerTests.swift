@@ -17,7 +17,10 @@ class QuizAnswerTests: XCTestCase {
         let option = Option.placeholder
 
         let store = TestStore(
-            initialState: QuizAnswerState(option: option, viewModel: .text("option")),
+            initialState: QuizAnswerState(
+                option: option,
+                viewModel: .text("option")
+            ),
             reducer: quizAnswerReducer,
             environment: ()
         )

@@ -14,7 +14,7 @@ import DatabaseClient
 
 class QuizQuestionTests: XCTestCase {
 
-    let scheduler = DispatchQueue.test
+    let scheduler = DispatchQueue.testScheduler.eraseToAnyScheduler()
 
     let question = Question.placeholder1
 
@@ -45,7 +45,9 @@ class QuizQuestionTests: XCTestCase {
         quizViewStore.scope(state: \.question)
             .assert(
                 .send(.quizQuestion(.continueFlow)),
-                .receive(.finish)
+                .receive(.finish) { state in
+                    state = nil
+                }
             )
     }
 

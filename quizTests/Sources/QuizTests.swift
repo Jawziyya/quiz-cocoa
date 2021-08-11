@@ -24,8 +24,6 @@ class QuizTests: XCTestCase {
                     theme: theme,
                     question: QuizQuestionState(question: question1, answer: .none),
                     progress: QuizProgressViewState(progress: 0, score: 0),
-                    time: 0,
-                    timeProgress: 0,
                     questionsComplete: 0,
                     presentCancellationAlert: false
                 )
@@ -37,11 +35,16 @@ class QuizTests: XCTestCase {
 
     func testQuizHasCorrectScore() {
         let store = createTestStore()
+        let answer = Answer(isCorrect: true)
         store.assert(
             .send(.quizQuestion(.continueFlow), { state in
                 state.question = .init(question: self.question2)
             }),
-            .receive(.finish)
+            .send(.quizQuestion(.commitAnswer(answer)), { state in
+                state.question?.answer = answer
+                state.progress = .init(progress: 1, score: Constant.correctAnswerPoints)
+                state.questionsComplete = 1
+            })
         )
     }
 
@@ -72,14 +75,20 @@ class QuizTests: XCTestCase {
             },
 
             .send(.quizQuestion(.continueFlow)) { state in
-                state.question = .init(question: self.question2, answer: .init(isCorrect: false))
+                state.question = .init(question: self.question2, answer: nil)
             },
 
-            .send(.quizQuestion(.commitAnswer(incorrectAnswer))) { state in
-                state.progress = .init(progress: 100, score: 0)
+            .send(.quizQuestion(.commitAnswer(incorrectAnswer)), { state in
+                state.question?.answer = incorrectAnswer
+                state.progress = .init(progress: 1, score: 0)
                 state.questionsComplete = 2
-                state.question = .init(question: self.question2, answer: incorrectAnswer)
-            }
+            }),
+
+            .send(.quizQuestion(.continueFlow)),
+
+            .receive(.finish, { state in
+                state.question = nil
+            })
         )
     }
 
