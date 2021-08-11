@@ -10,11 +10,6 @@ import SwiftUI
 import ComposableArchitecture
 import Entities
 
-
-enum TextAndImagePositioning {
-    case vStack, zStack
-}
-
 enum QuizAnswerViewModel: Equatable, Hashable {
     case text(String)
     case image(ImageType)
