@@ -20,7 +20,7 @@ public struct Theme: Hashable, Decodable, Identifiable {
     }
 
     public static var placeholder: Theme {
-        .init(id: 0, title: "Theme: " + UUID().uuidString, questions: [])
+        .init(id: 0, title: "Theme: " + UUID().uuidString, questions: [Question.placeholder1, .placeholder2])
     }
 
     public static var quran: Theme {
