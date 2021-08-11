@@ -25,7 +25,7 @@ struct QuizQuestionProgressView: View, Equatable {
     var timeElapsedCompletion: (() -> Void)?
 
     private var progress: CGFloat {
-        CGFloat(time / questionMaxTime)
+        CGFloat(time / Constant.questionMaxTime)
     }
 
     let timer = Timer.publish(every: 0.025, on: .main, in: .common).autoconnect()
@@ -33,7 +33,7 @@ struct QuizQuestionProgressView: View, Equatable {
     var body: some View {
         LinearProgress(progress: progress, foregroundColor: Color.white.opacity(0.2), cornerRadius: Constant.cornerRadius)
             .onReceive(timer) { _ in
-                if time >= questionMaxTime {
+                if time >= Constant.questionMaxTime {
                     time = 0
                     timer.upstream.connect().cancel()
                     timeElapsedCompletion?()

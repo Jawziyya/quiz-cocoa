@@ -11,8 +11,6 @@ import ComposableArchitecture
 import Entities
 import DatabaseClient
 
-let questionMaxTime: Double = 30
-
 struct QuizState: Equatable, Hashable {
     var theme: Theme
     var question: QuizQuestionState?

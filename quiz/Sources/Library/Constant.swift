@@ -17,4 +17,6 @@ enum Constant {
 
     static let correctAnswerPoints = 50
 
+    static let questionMaxTime: Double = 10
+
 }
