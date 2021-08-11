@@ -10,11 +10,6 @@ import SwiftUI
 import ComposableArchitecture
 import Entities
 
-enum ImageType: Hashable, Equatable {
-    case bundled(String)
-    case system(String)
-    case remote(URL)
-}
 
 enum TextAndImagePositioning {
     case vStack, zStack
