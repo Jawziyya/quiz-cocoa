@@ -162,7 +162,7 @@ struct QuizTopicsView: View {
                 Color.clear.onAppear {
                     let insets = proxy.safeAreaInsets
                     Constant.quizImageCardSize = (proxy.size.width / 2.5).rounded(.up)
-                    Constant.bottomInset = insets.bottom
+                    Constant.bottomInset = UIApplication.shared.windows.first?.safeAreaInsets.bottom ?? insets.bottom
                 }
             }
         )
