@@ -23,7 +23,7 @@ extension Entities.Theme: FetchableRecord, TableRecord {
 
 extension Entities.Question: FetchableRecord, TableRecord {
     public static var databaseTableName: String { "questions" }
-    static let answers = hasMany(Entities.Option.self, using: ForeignKey(["question_id"], to: ["id"]))
+    static let options = hasMany(Entities.Option.self, using: ForeignKey(["question_id"], to: ["id"]))
 }
 
 extension Entities.Option: FetchableRecord, TableRecord, EncodableRecord {

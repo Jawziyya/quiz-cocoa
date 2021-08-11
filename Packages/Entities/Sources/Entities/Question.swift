@@ -11,7 +11,7 @@ import Foundation
 public struct Question: Equatable, Hashable, Identifiable, Decodable {
 
     public enum CodingKeys: String, CodingKey {
-        case id, title, description, reference, difficulty, answers
+        case id, title, description, reference, difficulty, options = "answers"
         case _theme_id = "theme_id"
     }
 
@@ -24,7 +24,7 @@ public struct Question: Equatable, Hashable, Identifiable, Decodable {
     public let reference: String?
     public let difficulty: DifficultyLevel
 
-    public let answers: [Option]
+    public let options: [Option]
 
     public var hasCorrectAnswer: Bool {
         answers.filter(\.isCorrect).isEmpty == false

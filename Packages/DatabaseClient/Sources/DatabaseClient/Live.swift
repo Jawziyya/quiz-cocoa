@@ -48,7 +48,7 @@ extension DatabaseClient {
                             all: Topic.themes
                                 .including(
                                     all: Theme.questions
-                                        .including(all: Question.answers)
+                                        .including(all: Question.options)
                                 )
                         )
                     return try Topic.fetchAll(db, topicsRequest)
@@ -60,7 +60,7 @@ extension DatabaseClient {
                     let themesRequest = Theme
                         .including(
                             all: Theme.questions
-                                .including(all: Question.answers)
+                                .including(all: Question.options)
                         )
                     return try Theme.fetchAll(db, themesRequest)
                 }
@@ -68,7 +68,7 @@ extension DatabaseClient {
 
             fetchQuestions: .catching {
                 try staticDatabase().read { db in
-                    let questionsRequest = Question.including(all: Question.answers)
+                    let questionsRequest = Question.including(all: Question.options)
                     let questionsData = try Question.fetchAll(db, questionsRequest)
                     return questionsData
                 }
