@@ -51,27 +51,32 @@ let quizAnswerReducer = Reducer<QuizAnswerState, QuizAnswerAction, QuizAnswerEnv
  */
 struct QuizAnswerView: View {
 
-    let store: ViewStore<QuizAnswerState, QuizAnswerAction>
+    private let insets = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2)
+
+    let store: Store<QuizAnswerState, QuizAnswerAction>
 
     var body: some View {
-        Button(action: {
-            store.send(.select)
-        }, label: {
-            VStack {
-                getView(for: store.viewModel)
-                    .padding()
+        WithViewStore(store) { viewStore in
+            Button(action: {
+                viewStore.send(.select)
+            }, label: {
+                getView(for: viewStore.viewModel)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .foregroundColor(store.isSelected ? Color.accentColor : Color(.label))
-                    .background(store.isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
-            }
-        })
-        .buttonStyle(
-            PressDownButtonStyle(
-                insets: UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2),
-                backgroundColor: Color(.systemBackground),
-                bottomLayerColor: Color.accentColor
+                    .foregroundColor(viewStore.isSelected ? Color.accentColor : Color(.label))
+                    .background(viewStore.isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
+            })
+            .buttonStyle(
+                PressDownButtonStyle(
+                    insets: insets,
+                    backgroundColor: Color(.systemBackground),
+                    bottomLayerColor: Color.gray,
+                    bottomLayerSelectedColor: Color.accentColor,
+                    isSelected: viewStore.isSelected
+                )
             )
-        )
+            .animation(.none)
+            .font(Font.system(.callout, design: .rounded))
+        }
     }
 
     @ViewBuilder
@@ -82,7 +87,7 @@ struct QuizAnswerView: View {
             Text(text)
 
         case .image(let imageType):
-            getImage(imageType)
+            getImage(imageType, axis: .zStack)
 
         case .textAndImage:
             getTextAndImageView(type: type)
@@ -102,16 +107,27 @@ struct QuizAnswerView: View {
             case .vStack:
                 VStack {
                     Text(text)
+                        .padding(8)
+                        .layoutPriority(1)
                     Spacer()
-                    getImage(imageType)
+                    getImage(imageType, axis: positioning)
                 }
 
             case .zStack:
                 ZStack(alignment: Alignment.top) {
-                    getImage(imageType)
+                    getImage(imageType, axis: positioning)
                     Text(text)
-                        .padding(4)
-                        .background(Colors.secondaryBackground.cornerRadius(4))
+                        .padding(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
+                        .background(
+                            Color.white
+                                .cornerRadius(Constant.cornerRadius)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: Constant.cornerRadius)
+                                        .stroke(Color.accentColor, lineWidth: 1)
+                                )
+                        )
+                        .foregroundColor(Color.black)
+                        .padding(8)
                 }
             }
 
@@ -119,18 +135,22 @@ struct QuizAnswerView: View {
     }
 
     @ViewBuilder
-    func getImage(_ type: ImageType) -> some View {
+    func getImage(_ type: ImageType, axis: TextAndImagePositioning) -> some View {
         switch type {
 
         case .bundled(let name):
             Image(name)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
+                .clipped()
+                .frame(width: .infinity, height: .infinity)
 
         case .system(let name):
             Image(systemName: name)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
+                .clipped()
+                .frame(width: .infinity, height: .infinity)
 
         case .remote(let url):
             AsyncImage(
@@ -139,18 +159,23 @@ struct QuizAnswerView: View {
                 content: { image in
                     image
                         .resizable()
-                        .aspectRatio(contentMode: .fill)
+                        .aspectRatio(contentMode: axis == .vStack ? .fit : .fill)
+                        .clipped()
+                        .frame(width: Constant.quizImageCardSize, height: Constant.quizImageCardSize)
                 },
                 placeholder: {
                     Image(systemName: "photo")
                         .resizable()
-                        .aspectRatio(contentMode: .fill)
+                        .aspectRatio(contentMode: ContentMode.fill)
                         .padding()
                         .foregroundColor(Color.secondary)
                 }
             )
             .equatable()
-            .frame(width: Constant.quizImageCardSize * 0.8, height: Constant.quizImageCardSize * 0.8)
+            .frame(
+                width: Constant.quizImageCardSize - insets.left - insets.right,
+                height: Constant.quizImageCardSize - insets.top - insets.bottom
+            )
 
         }
     }
@@ -159,23 +184,41 @@ struct QuizAnswerView: View {
 
 struct QuizAnswerView_Previews: PreviewProvider {
     static var previews: some View {
-        func getStore(vm: QuizAnswerViewModel) -> ViewStore<QuizAnswerState, QuizAnswerAction> {
-            return .init(Store(
-                initialState: QuizAnswerState(option: .placeholder, viewModel: vm),
+        func getStore(vm: QuizAnswerViewModel, isSelected: Bool = false) -> Store<QuizAnswerState, QuizAnswerAction> {
+            return Store(
+                initialState: QuizAnswerState(option: .placeholder, viewModel: vm, isSelected: isSelected),
                 reducer: quizAnswerReducer,
-                environment: ())
+                environment: ()
             )
         }
 
+        Constant.quizImageCardSize = 200
+
+        let mosqueImageURL = URL(string: "https://images.unsplash.com/photo-1466442929976-97f336a657be?ixid=MnwxMjA3fDB8MHxzZWFyY2h8MTB8fGlzdGFuYnVsfGVufDB8fDB8fA%3D%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=900&q=60")!
+
         return Group {
-//            QuizAnswerView(store: getStore(vm: .text("Test")))
-//            QuizAnswerView(store: getStore(vm: .image(.bundled("table"))))
-//            QuizAnswerView(store: getStore(vm: .textAndImage(text: "Test", image: .bundled("table"))))
-//            QuizAnswerView(store: getStore(vm: .image(ImageType.remote(istanbulMosqueImageURL))))
+
+            QuizAnswerView(store: getStore(vm: .text("Test"), isSelected: true))
+                .previewDisplayName("Just text")
+
+            QuizAnswerView(store: getStore(vm: .textAndImage(text: "Test", image: .bundled("table"), positioning: .zStack)))
+                .previewDisplayName("Bundled image")
+
+            QuizAnswerView(store: getStore(vm: .image(ImageType.remote(mosqueImageURL))))
+                .previewDisplayName("Just image")
+
             QuizAnswerView(store: getStore(vm: .textAndImage(
                 text: "Istanbul",
-                image: .remote(URL(string: "https://images.unsplash.com/photo-1527838832700-5059252407fa?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=943&q=80")!), positioning: .zStack))
+                image: .remote(mosqueImageURL), positioning: .vStack))
             )
+            .previewDisplayName("Remote image and title vstack")
+
+            QuizAnswerView(store: getStore(vm: .textAndImage(
+                text: "Istanbul",
+                image: .remote(mosqueImageURL), positioning: .zStack))
+            )
+            .previewDisplayName("Remote image and title overlay")
+
         }
         .previewLayout(.fixed(width: 200, height: 200))
     }
