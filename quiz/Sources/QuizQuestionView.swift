@@ -16,14 +16,6 @@ private func getRandomIndices() -> [Int] {
 
 private var randomIndices: [Int] = getRandomIndices()
 
-struct Answer: Identifiable, Equatable, Hashable, Codable {
-    let isCorrect: Bool
-
-    var id: String {
-        isCorrect.description
-    }
-}
-
 struct QuizQuestionState: Equatable, Hashable {
     let question: Question
 
