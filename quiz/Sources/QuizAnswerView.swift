@@ -8,15 +8,12 @@
 
 import SwiftUI
 import ComposableArchitecture
-
-enum ImageType {
-    case bundled, system
-}
+import Entities
 
 enum QuizAnswerViewModel: Equatable, Hashable {
     case text(String)
-    case image(_ name: String, type: ImageType = .bundled)
-    case textAndImage(text: String, imageName: String, imageType: ImageType = .bundled)
+    case image(ImageType)
+    case textAndImage(text: String, image: ImageType, positioning: TextAndImagePositioning)
 }
 
 struct ImageAndTextView: View {
@@ -46,56 +43,140 @@ let quizAnswerReducer = Reducer<QuizAnswerState, QuizAnswerAction, QuizAnswerEnv
     return .none
 }
 
+/**
+ Represents one answer option along others.
+
+ [1] [2]  <-- One of these items in grid.
+ [3] [4]
+ */
 struct QuizAnswerView: View {
 
-    let store: ViewStore<QuizAnswerState, QuizAnswerAction>
+    private let insets = UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2)
+
+    let store: Store<QuizAnswerState, QuizAnswerAction>
 
     var body: some View {
-        Button(action: {
-            store.send(.select)
-        }, label: {
-            VStack {
-                getView(for: store.viewModel)
-                    .padding()
+        WithViewStore(store) { viewStore in
+            Button(action: {
+                viewStore.send(.select)
+            }, label: {
+                getView(for: viewStore.viewModel)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .foregroundColor(store.isSelected ? Color.accentColor : Color(.label))
-                    .background(store.isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
-            }
-        })
-        .buttonStyle(
-            PressDownButtonStyle(
-                insets: UIEdgeInsets(top: 2, left: 2, bottom: 2, right: 2),
-                backgroundColor: Color(.systemBackground),
-                bottomLayerColor: Color.accentColor
+                    .foregroundColor(viewStore.isSelected ? Color.accentColor : Color(.label))
+                    .background(viewStore.isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
+            })
+            .buttonStyle(
+                PressDownButtonStyle(
+                    insets: insets,
+                    backgroundColor: Color(.systemBackground),
+                    bottomLayerColor: Color.gray,
+                    bottomLayerSelectedColor: Color.accentColor,
+                    isSelected: viewStore.isSelected
+                )
             )
-        )
+            .animation(.none)
+            .font(Font.system(.callout, design: .rounded))
+        }
     }
 
     @ViewBuilder
     private func getView(for type: QuizAnswerViewModel) -> some View {
         switch type {
+
         case .text(let text):
             Text(text)
-        case .image(let imageName, let type):
-            getImage(name: imageName, type: type)
-        case .textAndImage(let text, let imageName, let imageType):
-            VStack {
-                Text(text)
-                Spacer()
-                getImage(name: imageName, type: imageType)
-            }
+
+        case .image(let imageType):
+            getImage(imageType, axis: .zStack)
+
+        case .textAndImage:
+            getTextAndImageView(type: type)
+
         }
     }
 
     @ViewBuilder
-    func getImage(name: String, type: ImageType) -> some View {
+    func getTextAndImageView(type: QuizAnswerViewModel) -> some View {
         switch type {
-        case .bundled:
+
+        case .text, .image:
+            EmptyView()
+
+        case .textAndImage(let text, let imageType, let positioning):
+            switch positioning {
+            case .vStack:
+                VStack {
+                    Text(text)
+                        .padding(8)
+                        .layoutPriority(1)
+                    Spacer()
+                    getImage(imageType, axis: positioning)
+                }
+
+            case .zStack:
+                ZStack(alignment: Alignment.top) {
+                    getImage(imageType, axis: positioning)
+                    Text(text)
+                        .padding(EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8))
+                        .background(
+                            Color.white
+                                .cornerRadius(Constant.cornerRadius)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: Constant.cornerRadius)
+                                        .stroke(Color.accentColor, lineWidth: 1)
+                                )
+                        )
+                        .foregroundColor(Color.black)
+                        .padding(8)
+                }
+            }
+
+        }
+    }
+
+    @ViewBuilder
+    func getImage(_ type: ImageType, axis: TextAndImagePositioning) -> some View {
+        switch type {
+
+        case .bundled(let name):
             Image(name)
                 .resizable()
+                .aspectRatio(contentMode: .fill)
+                .clipped()
+                .frame(width: .infinity, height: .infinity)
+
+        case .system(let name):
+            Image(systemName: name)
+                .resizable()
                 .aspectRatio(contentMode: .fit)
-        case .system:
-            Image(systemName: name).resizable().aspectRatio(contentMode: .fit)
+                .clipped()
+                .frame(width: .infinity, height: .infinity)
+
+        case .remote(let url):
+            AsyncImage(
+                url: url,
+                scale: 1,
+                content: { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: axis == .vStack ? .fit : .fill)
+                        .clipped()
+                        .frame(width: Constant.quizImageCardSize, height: Constant.quizImageCardSize)
+                },
+                placeholder: {
+                    Image(systemName: "photo")
+                        .resizable()
+                        .aspectRatio(contentMode: ContentMode.fill)
+                        .padding()
+                        .foregroundColor(Color.secondary)
+                }
+            )
+            .equatable()
+            .frame(
+                width: Constant.quizImageCardSize - insets.left - insets.right,
+                height: Constant.quizImageCardSize - insets.top - insets.bottom
+            )
+
         }
     }
 
@@ -103,10 +184,41 @@ struct QuizAnswerView: View {
 
 struct QuizAnswerView_Previews: PreviewProvider {
     static var previews: some View {
+        func getStore(vm: QuizAnswerViewModel, isSelected: Bool = false) -> Store<QuizAnswerState, QuizAnswerAction> {
+            return Store(
+                initialState: QuizAnswerState(option: .placeholder, viewModel: vm, isSelected: isSelected),
+                reducer: quizAnswerReducer,
+                environment: ()
+            )
+        }
+
+        Constant.quizImageCardSize = 200
+
+        let mosqueImageURL = URL(string: "https://images.unsplash.com/photo-1466442929976-97f336a657be?ixid=MnwxMjA3fDB8MHxzZWFyY2h8MTB8fGlzdGFuYnVsfGVufDB8fDB8fA%3D%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=900&q=60")!
+
         return Group {
-            QuizAnswerView(store: .init(Store(initialState: QuizAnswerState(option: "Test", viewModel: .text("Test")), reducer: quizAnswerReducer, environment: ())))
-            QuizAnswerView(store: .init(Store(initialState: QuizAnswerState(option: "Test", viewModel: .image("table")), reducer: quizAnswerReducer, environment: ())))
-            QuizAnswerView(store: .init(Store(initialState: QuizAnswerState(option: "Test", viewModel: .textAndImage(text: "Test", imageName: "table")), reducer: quizAnswerReducer, environment: ())))
+
+            QuizAnswerView(store: getStore(vm: .text("Test"), isSelected: true))
+                .previewDisplayName("Just text")
+
+            QuizAnswerView(store: getStore(vm: .textAndImage(text: "Test", image: .bundled("table"), positioning: .zStack)))
+                .previewDisplayName("Bundled image")
+
+            QuizAnswerView(store: getStore(vm: .image(ImageType.remote(mosqueImageURL))))
+                .previewDisplayName("Just image")
+
+            QuizAnswerView(store: getStore(vm: .textAndImage(
+                text: "Istanbul",
+                image: .remote(mosqueImageURL), positioning: .vStack))
+            )
+            .previewDisplayName("Remote image and title vstack")
+
+            QuizAnswerView(store: getStore(vm: .textAndImage(
+                text: "Istanbul",
+                image: .remote(mosqueImageURL), positioning: .zStack))
+            )
+            .previewDisplayName("Remote image and title overlay")
+
         }
         .previewLayout(.fixed(width: 200, height: 200))
     }

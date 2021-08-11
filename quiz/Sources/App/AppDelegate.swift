@@ -101,7 +101,7 @@ struct AppDelegateEnvironment {
     var databaseClient: DatabaseClient
 }
 
-extension AppEnvironment {
+extension HomeViewEnv {
 
     static func live() throws -> Self {
         let fileManager = FileManager.default
@@ -109,10 +109,15 @@ extension AppEnvironment {
             .url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
             .appendingPathComponent("database", isDirectory: true)
         try fileManager.createDirectory(at: folderURL, withIntermediateDirectories: true)
-        let dbURL = folderURL.appendingPathComponent("db.sqlite")
-        let databaseClient = DatabaseClient.live(url: dbURL)
+        let cachingDbURL = folderURL.appendingPathComponent("db.sqlite")
+        let staticDbURL = Bundle.main.url(forResource: "db", withExtension: "sqlite")!
 
-        return AppEnvironment(
+        let databaseClient = DatabaseClient.live(
+            cacheDatabaseURL: cachingDbURL,
+            staticDatabaseURL: staticDbURL
+        )
+
+        return HomeViewEnv(
             mainQueue: DispatchQueue.main.eraseToAnyScheduler(),
             databaseClient: databaseClient
         )
@@ -130,15 +135,15 @@ let appDelegateReducer = Reducer<
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     let store = Store(
-        initialState: AppState(topics: [Topic.placeholder]),
-        reducer: appReducer,
-        environment: try! AppEnvironment.live()
+        initialState: HomeViewState(),
+        reducer: homeViewReducer,
+        environment: try! HomeViewEnv.live()
     )
     
     lazy var viewStore = ViewStore(
         self.store.scope(
-            state: \.appDelegate,
-            action: AppAction.appDelegate
+            state: \.appDelegateState,
+            action: HomeViewAction.appDelegate
         )
     )
 
@@ -150,13 +155,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             .addHandlerForNotification(
                 self,
                 handler: #selector(AppDelegate
-                    .showAuthenticationViewController))
+                    .showAuthenticationViewController)
+            )
 
         PopupControllerMessage.GameCenter
             .addHandlerForNotification(
                 self,
                 handler: #selector(AppDelegate
-                    .showGameCenterViewController))
+                    .showGameCenterViewController)
+            )
 
 //        GKAccessPoint.shared.location = .topTrailing
 //        GKAccessPoint.shared.showHighlights = false

@@ -1,21 +1,22 @@
 //
 //
 //  quizTests
-//  
+//
 //  Created on 06.03.2021
-//  
-//  
+//
+//
 
 import XCTest
 import ComposableArchitecture
 @testable import quiz
 import Entities
+import DatabaseClient
 
 class QuizQuestionTests: XCTestCase {
 
-    let scheduler = DispatchQueue.testScheduler
+    let scheduler = DispatchQueue.testScheduler.eraseToAnyScheduler()
 
-    let question = Question.testData[0]
+    let question = Question.placeholder1
 
     func createTestStore(question: Question) -> TestStore<QuizQuestionState, QuizQuestionState, QuizQuestionAction, QuizQuestionAction, QuizQuestionEnvironment> {
         TestStore(
@@ -37,14 +38,16 @@ class QuizQuestionTests: XCTestCase {
         let theme = Theme(id: 0, title: UUID().uuidString, questions: [Question.placeholder1])
 
         let quizViewStore = TestStore(
-            initialState: QuizState(theme: theme, quizQuestion: .init(question: question)),
+            initialState: QuizState(theme: theme, question: .init(question: question)),
             reducer: quizReducer,
-            environment: QuizEnvironment()
+            environment: QuizEnvironment(databaseClient: DatabaseClient.noop)
         )
-        quizViewStore.scope(state: \.quizQuestion)
+        quizViewStore.scope(state: \.question)
             .assert(
                 .send(.quizQuestion(.continueFlow)),
-                .receive(.finish)
+                .receive(.finish) { state in
+                    state = nil
+                }
             )
     }
 

@@ -20,10 +20,15 @@ struct AnswerIndicatorView: View {
     private let bodyFont = Font.body.smallCaps()
     private let boldBodyFont = Font.body.weight(.heavy).smallCaps()
 
+    private var correctTitle: String {
+        let variants = ["great", "awesome", "excellent", "perfect"]
+        return NSLocalizedString("quiz.correct.\(variants.randomElement()!)", comment: "")
+    }
+
     var body: some View {
         HStack {
             if answerIsCorrect {
-                Text("quiz.correct-title", comment: "Correct solution title.")
+                Text(correctTitle + "!")
                     .font(boldBodyFont)
             } else {
                 Text("quiz.incorrect-title", comment: "Incorrect title")

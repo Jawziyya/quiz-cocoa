@@ -1,15 +1,16 @@
 //
 //
 //  quiz
-//  
+//
 //  Created on 10.03.2021
 //  Copyright © 2021 Al Jawziyya. All rights reserved.
-//  
+//
 
 import XCTest
 import ComposableArchitecture
 @testable import quiz
 import Entities
+import DatabaseClient
 
 class QuizTopicsTests: XCTestCase {
 
@@ -20,14 +21,20 @@ class QuizTopicsTests: XCTestCase {
         let store = TestStore(
             initialState: QuizTopicsState(topics: topics, selectedTheme: nil, selectedQuizState: nil),
             reducer: quizTopicsReducer,
-            environment: QuizTopicsEnvironment(mainQueue: testScheduler)
+            environment: QuizTopicsEnvironment(mainQueue: testScheduler, databaseClient: DatabaseClient.noop)
         )
 
-        let selectedTopic = topics[0]
-        let selectedTheme = selectedTopic.themes.first!
-        store.assert(.send(.showTheme(selectedTheme), { state in
-            state.selectedTheme = selectedTheme
-            state.selectedQuizState = .init(theme: selectedTheme, quizQuestion: QuizQuestionState(question: Question.placeholder1), score: 0, progress: 0, questionsComplete: 0, isPresented: true, presentCancellationAlert: false)
+        let question = Question.placeholder1
+        let theme = Theme(id: 1, title: "Theme", questions: [question])
+        store.assert(.send(.showTheme(theme), { state in
+            state.selectedTheme = theme
+            state.selectedQuizState = .init(
+                theme: theme,
+                question: QuizQuestionState(question: question, answer: .none),
+                progress: QuizProgressViewState(progress: 0, score: 0),
+                questionsComplete: 0,
+                presentCancellationAlert: false
+            )
         }))
     }
 

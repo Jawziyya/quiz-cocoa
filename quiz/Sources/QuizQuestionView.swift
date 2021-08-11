@@ -10,7 +10,16 @@ import SwiftUI
 import Entities
 import ComposableArchitecture
 
-typealias Option = Question.Option
+func getAnswer(to question: Question, options: [QuizAnswerState]) -> Answer {
+    if question.hasCorrectAnswer && question.hasMoreThanOneCorrectAnswer == false, let selectedOption = options.first(where: \.isSelected) {
+        return Answer(isCorrect: selectedOption.option.isCorrect)
+    } else if question.hasMoreThanOneCorrectAnswer {
+        let selection = Set(options.filter(\.isSelected).map(\.option))
+        return Answer(isCorrect: selection.subtracting(Set(question.options)).isEmpty)
+    } else {
+        return .init(isCorrect: false)
+    }
+}
 
 private func getRandomIndices() -> [Int] {
     Array(0..<4).shuffled()
@@ -18,42 +27,32 @@ private func getRandomIndices() -> [Int] {
 
 private var randomIndices: [Int] = getRandomIndices()
 
-struct Answer: Identifiable, Equatable, Hashable {
-    let isCorrect: Bool
-
-    var id: String {
-        isCorrect.description
-    }
-}
-
 struct QuizQuestionState: Equatable, Hashable {
     let question: Question
 
     init(question: Question, answer: Answer? = nil) {
         self.question = question
-        self.options = zip(question.options, ["table", "bird", "space", "cat"])
-            .map { option, imageName in
-                QuizAnswerState(option: option, viewModel: .textAndImage(text: option, imageName: imageName, imageType: .bundled), isSelected: false)
-            }
         self.answer = answer
+        options = question.options.map(\.quizAnswerState)
     }
 
     var options: [QuizAnswerState]
 
     var title: String { question.title }
 
-    func getAnswer() -> Answer {
-        let selection = Set(options.filter(\.isSelected).map(\.option))
-        return Answer(isCorrect: selection.subtracting(Set(question.answers)).isEmpty)
+    func compileAnswer() -> Answer {
+        getAnswer(to: question, options: options)
     }
 
-    func getCorrectAnswer() -> String {
-        question.answers.joined(separator: ", ")
+    func getCorrectAnswerDescription() -> String {
+        question.getCorrectAnswer()
     }
 
     var canCommit = false
     var showComplainMenu = false
     var answer: Answer?
+
+    var timeProgress: Double = 0
 
     var hasAnswer: Bool {
         answer != nil
@@ -74,6 +73,7 @@ enum QuizQuestionAction: Equatable {
     case commitAnswer(Answer)
     case complain
     case continueFlow
+    case timeout
 }
 
 struct QuizQuestionEnvironment {
@@ -83,9 +83,6 @@ let quizQuestionReducer = Reducer<QuizQuestionState,  QuizQuestionAction, QuizQu
     Reducer { state, action, environment in
 
         switch action {
-
-        case .optionSelection(let option):
-            return .none
 
         case .selectOption(let index, let action):
             if state.question.hasMoreThanOneCorrectAnswer {
@@ -127,10 +124,36 @@ let quizQuestionReducer = Reducer<QuizQuestionState,  QuizQuestionAction, QuizQu
             randomIndices = getRandomIndices()
             return .none
 
+        case .timeout:
+            SoundEffect.playError()
+            return .none
+
+        default:
+            return .none
+
         }
     }
 )
 
+/**
+ This view represents one question and it's options.
+
+ It also includes a button at the bottom of the container (either `Commit answer` or `Continue`).
+
+
+ ------------
+   QUESTION
+    TITLE?
+
+ ⎡          ⎤
+   [1]  [2]
+   [3]  [4]
+ ⎣          ⎦
+
+   CONTINUE
+ ------------
+
+ */
 struct QuizQuestionView: View {
 
     let store: Store<QuizQuestionState, QuizQuestionAction>
@@ -140,15 +163,17 @@ struct QuizQuestionView: View {
     var body: some View {
         WithViewStore(store) { viewStore in
             ZStack(alignment: .bottom) {
+
+                // Answer indicator overlay view at the bottom.
                 if viewStore.hasAnswer {
                     AnswerIndicatorView(
                         answerIsCorrect: viewStore.answerIsCorrect,
-                        correctAnswer: viewStore.state.getCorrectAnswer(),
+                        correctAnswer: viewStore.state.getCorrectAnswerDescription(),
                         complain: {
                             viewStore.send(.complain)
                         }
                     )
-                    .padding(.bottom, buttonHeight)
+                    .padding(.bottom, buttonHeight + Constant.bottomInsetForOldDevices)
                     .background(
                         (viewStore.answerIsCorrect ? correctAnswerBackgroundColor : wrongAnswerBackgroundColor)
                             .edgesIgnoringSafeArea(.all)
@@ -158,22 +183,21 @@ struct QuizQuestionView: View {
                     .zIndex(0)
                 }
 
-                VStack {
-                    VStack(alignment: .center, spacing: 40) {
-                        HStack(alignment: .top) {
-                            Text(viewStore.title)
-                                .font(Font.system(.largeTitle, design: .rounded).weight(.medium))
-                                .frame(height: 140)
-                                .minimumScaleFactor(0.3)
-                            Spacer()
-                        }
+                VStack(alignment: .center, spacing: 0) {
+                    // Question title.
+                    Group {
+                        getTitleView(title: viewStore.title)
+                            .layoutPriority(1)
 
+                        // Answer options
                         getAnswersView(options: randomIndices.map { viewStore.state.options[$0] })
+                            .layoutPriority(0.5)
                     }
                     .disabled(viewStore.hasAnswer)
-                    .padding()
+                    .padding(.horizontal)
 
-                    Color.clear.frame(height: 60)
+                    Color.clear.frame(minHeight: 20, idealHeight: 74, maxHeight: .infinity)
+                        .layoutPriority(0.4)
 
                     Button(action: {
                         if viewStore.hasAnswer {
@@ -181,10 +205,9 @@ struct QuizQuestionView: View {
                             return
                         }
 
-                        guard viewStore.canCommit else {
-                            return
+                        if viewStore.canCommit {
+                            viewStore.send(.commitAnswer(viewStore.state.compileAnswer()))
                         }
-                        viewStore.send(.commitAnswer(viewStore.state.getAnswer()))
                     }, label: {
                         HStack {
                             Spacer()
@@ -198,10 +221,27 @@ struct QuizQuestionView: View {
                     .opacity(viewStore.canCommit ? 1 : 0.5)
                     .disabled(!viewStore.canCommit)
                     .buttonStyle(PressDownButtonStyle(insets: UIEdgeInsets(top: 0, left: 0, bottom: 2, right: 0), backgroundColor: viewStore.hasAnswer ? viewStore.answerIsCorrect ? Colors.green : Colors.red : Colors.blue))
+                    .if(Constant.bottomInset == 0) { v in
+                        v.padding(.bottom, 20)
+                    }
+                    .overlay(
+                        ZStack {
+                            if viewStore.hasAnswer {
+                                Color.clear
+                            } else {
+                                QuizQuestionProgressView(questionId: viewStore.question.id) {
+                                    viewStore.send(.timeout)
+                                }
+                                .equatable()
+                                .allowsHitTesting(false)
+                            }
+                        }
+                    )
                     .padding(.horizontal)
                     .frame(height: buttonHeight, alignment: .bottom)
                     .zIndex(0.1)
                     .animation(.none)
+                    .layoutPriority(1)
                 }
             }
             .overlay(
@@ -209,11 +249,22 @@ struct QuizQuestionView: View {
                     if viewStore.hasAnswer && viewStore.answerIsCorrect {
                         LottieView(name: "confetti\(Int.random(in: 1...4))", loopMode: .playOnce)
                             .edgesIgnoringSafeArea(.all)
-                            .disabled(true)
+                            .allowsHitTesting(false)
                             .zIndex(1)
                     }
                 }
             )
+        }
+    }
+
+    private func getTitleView(title: String) -> some View {
+        HStack(alignment: .top) {
+            Text(title)
+                .font(Font.system(.largeTitle, design: .rounded).weight(.medium))
+                .minimumScaleFactor(0.25)
+                .frame(minHeight: 100, idealHeight: 140, maxHeight: 200)
+                .padding(.vertical, 30)
+            Spacer()
         }
     }
 
@@ -223,40 +274,41 @@ struct QuizQuestionView: View {
 
         case .text:
             VStack(alignment: .center, spacing: 16) {
+                Spacer()
                 ForEach((randomIndices), id: \.self) { idx in
-                    WithViewStore(
-                        self.store.scope(
+                    QuizAnswerView(
+                        store: self.store.scope(
                             state: { $0.options[idx] },
                             action: { QuizQuestionAction.selectOption(index: idx, action: $0) }
-                        ), content: QuizAnswerView.init(store:)
+                        )
                     )
+
                 }
+                Spacer()
             }
+            .frame(height: Constant.quizImageCardSize * 2)
 
         case .textAndImage:
             VStack(alignment: .center) {
-                HStack {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.fixed(Constant.quizImageCardSize), spacing: 30, alignment: nil),
+                        GridItem(.fixed(Constant.quizImageCardSize), spacing: 30, alignment: nil)
+                    ],
+                    alignment: HorizontalAlignment.center,
+                    spacing: 16) {
 
-                    ForEach(Array(randomIndices.prefix(2)), id: \.self) { idx in
-                        WithViewStore(
-                            self.store.scope(
+                    ForEach(Array(randomIndices), id: \.self) { idx in
+                        QuizAnswerView(
+                            store: self.store.scope(
                                 state: { $0.options[idx] },
                                 action: { QuizQuestionAction.selectOption(index: idx, action: $0) }
-                            ), content: QuizAnswerView.init(store:)
+                            )
                         )
                     }
+
                 }
 
-                HStack {
-                    ForEach(randomIndices.suffix(from: 2), id: \.self) { idx in
-                        WithViewStore(
-                            self.store.scope(
-                                state: { $0.options[idx] },
-                                action: { QuizQuestionAction.selectOption(index: idx, action: $0) }
-                            ), content: QuizAnswerView.init(store:)
-                        )
-                    }
-                }
             }
 
         default:
@@ -268,13 +320,30 @@ struct QuizQuestionView: View {
 
 struct QuizQuestionView_Previews: PreviewProvider {
     static var previews: some View {
-        QuizQuestionView(
-            store: Store(
-                initialState: QuizQuestionState(question: .placeholder1, answer: Answer(isCorrect: false)),
+        Constant.quizImageCardSize = UIScreen.main.bounds.width/2.5
+        func getStore(question: Question) -> Store<QuizQuestionState, QuizQuestionAction> {
+            Store(
+                initialState: QuizQuestionState(question: question, answer: nil),
                 reducer: quizQuestionReducer,
                 environment: QuizQuestionEnvironment()
             )
-        )
-        .accentColor(Color(.systemIndigo))
+        }
+        func getQuestionView(question: Question = Question.placeholder1) -> QuizQuestionView {
+            QuizQuestionView(store: getStore(question: question))
+        }
+
+        return Group {
+            getQuestionView(question: Question.placeholderWithLongTitleAndImages)
+                .previewLayout(.fixed(width: 375, height: 667))
+                .previewDisplayName("Small device")
+
+            getQuestionView()
+
+            getQuestionView()
+                .previewDevice("iPhone 12 Pro")
+
+            getQuestionView()
+                .previewDevice("iPhone 8")
+        }
     }
 }

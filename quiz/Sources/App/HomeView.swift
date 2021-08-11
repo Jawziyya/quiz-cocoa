@@ -8,39 +8,111 @@
 
 import SwiftUI
 import ComposableArchitecture
+import DatabaseClient
+import Entities
+
+struct TopicsId: Hashable, Identifiable {
+    var id: String = UUID().uuidString
+}
 
 struct HomeViewState: Equatable {
+    var appDelegateState = AppDelegateState()
+    var topicsState: QuizTopicsState?
 }
 
 enum HomeViewAction: Equatable {
-    case topics
+    case appDelegate(AppDelegateAction)
+
+    case showTopics(Bool)
+    case displayTopics([Topic])
+    case quizTopics(QuizTopicsAction)
+
     case aboutApp
 }
 
-typealias HomeViewEnv = Void
-
-let homeViewReducer = Reducer<HomeViewState, HomeViewAction, HomeViewEnv> { state, action, env in
-
-    switch action {
-    case .topics:
-        break
-    case .aboutApp:
-        break
-    }
-
-    return .none
+struct HomeViewEnv {
+    let mainQueue: AnySchedulerOf<DispatchQueue>
+    let databaseClient: DatabaseClient
 }
-.debugActions("🏡 HomeView")
 
+let homeViewReducer = Reducer.combine(
+    appDelegateReducer
+        .pullback(
+            state: \.appDelegateState,
+            action: /HomeViewAction.appDelegate,
+            environment: { env in
+                .init(databaseClient: env.databaseClient)
+            }
+        ),
+    Reducer<HomeViewState, HomeViewAction, HomeViewEnv> { state, action, env in
+
+        switch action {
+
+        case .showTopics(let flag):
+            if flag {
+                return env.databaseClient
+                    .fetchTopics
+                    .replaceError(with: [])
+                    .map { topics in
+                        return HomeViewAction.displayTopics(topics)
+                    }
+                    .eraseToEffect()
+            } else {
+                state.topicsState = nil
+                return .none
+            }
+
+        case .displayTopics(let topics):
+            state.topicsState = .init(topics: topics, selectedTheme: .none, selectedQuizState: .none)
+            return .none
+
+        case .quizTopics(let action):
+            return .none
+
+        case .appDelegate(.didFinishLaunching):
+            return .merge(
+                env.databaseClient.migrate
+                    .ignoreOutput()
+                    .ignoreFailure()
+                    .eraseToEffect()
+                    .fireAndForget()
+            )
+
+        default:
+            return .none
+
+        }
+    }
+    .debugActions("🏡 Home", actionFormat: ActionFormat.labelsOnly)
+)
+.presents(
+    quizTopicsReducer,
+    state: \.topicsState,
+    action: /HomeViewAction.quizTopics,
+    environment: { env in
+        .init(mainQueue: env.mainQueue, databaseClient: env.databaseClient)
+    }
+)
+
+/**
+ Root view of the application.
+
+ - Has app logo
+ - Shows main actions as Start Quiz, About app etc.
+ */
 struct HomeView: View {
 
     typealias Store = ComposableArchitecture.Store<HomeViewState, HomeViewAction>
 
     let store: Store
 
+    struct HomeViewViewState: Equatable {
+        init(state: HomeViewState) { }
+    }
+
     var body: some View {
-        WithViewStore(store) { viewStore in
-            VStack {
+        WithViewStore(store.scope(state: HomeViewViewState.init(state:))) { viewStore in
+            ScrollView {
                 Spacer(minLength: 10)
                 Text("Quiz")
                     .foregroundColor(Color(.label))
@@ -57,7 +129,7 @@ struct HomeView: View {
 
                 VStack {
                     Button(action: {
-                        viewStore.send(.topics)
+                        viewStore.send(.showTopics(true))
                     }, label: {
                         Text("Начать")
                             .padding()
@@ -83,6 +155,16 @@ struct HomeView: View {
             }
             .background(Color(.systemBackground).edgesIgnoringSafeArea(.all))
         }
+        .navigate(
+            using: store.scope(
+                state: \.topicsState,
+                action: HomeViewAction.quizTopics
+            ),
+            destination: QuizTopicsView.init(store:),
+            onDismiss: {
+                ViewStore(store).send(.showTopics(false))
+            }
+        )
     }
 }
 
@@ -91,7 +173,10 @@ struct HomeView_Previews: PreviewProvider {
         let store = HomeView.Store(
             initialState: HomeViewState(),
             reducer: homeViewReducer,
-            environment: ()
+            environment: .init(
+                mainQueue: DispatchQueue.main.eraseToAnyScheduler(),
+                databaseClient: DatabaseClient.noop
+            )
         )
 
         return Group {
