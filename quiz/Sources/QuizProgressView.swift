@@ -45,9 +45,15 @@ struct QuizProgressView: View {
                         .contentShape(Rectangle().inset(by: -20))
                 }
 
-                LinearProgress(progress: viewStore.progress, foregroundColor: Color.accentColor, backgroundColor: Color.gray.opacity(0.15), cornerRadius: Constant.cornerRadius, fillAxis: .horizontal)
-                    .frame(height: 5)
-                    .animation(Animation.spring().speed(1.1))
+                LinearProgress(
+                    progress: viewStore.progress,
+                    foregroundColor: Color.accentColor,
+                    backgroundColor: Color.gray.opacity(0.15),
+                    cornerRadius: Constant.cornerRadius,
+                    fillAxis: .horizontal
+                )
+                .frame(height: 10)
+                .animation(Animation.spring().speed(1.1))
 
                 Text(viewStore.score.description)
                     .foregroundColor(Colors.green)
