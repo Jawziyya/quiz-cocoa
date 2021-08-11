@@ -73,13 +73,17 @@ let quizReducer = Reducer.combine(
                 let question = questions[safe: index + 1]
             {
                 state.question = .init(question: question)
-                return .init(value: .start)
+                return .none
             } else {
                 return .init(value: .finish)
             }
 
         case .quizQuestion(.timeout):
             return .init(value: .quizQuestion(.continueFlow))
+
+        case .finish:
+            state.question = nil
+            return .none
 
         default:
             return .none
@@ -132,7 +136,9 @@ struct QuizView: View {
 
     var body: some View {
         WithViewStore(store) { viewStore in
-            VStack {
+            VStack(spacing: 0) {
+                Color.clear.frame(height: 16)
+
                 IfLetStore(
                     self.store.scope(
                         state: \.progress,
@@ -140,6 +146,7 @@ struct QuizView: View {
                     ),
                     then: QuizProgressView.init(store:)
                 )
+                .layoutPriority(2)
 
                 IfLetStore(
                     self.store.scope(
@@ -148,6 +155,7 @@ struct QuizView: View {
                     then: QuizQuestionView.init(store:)
                 )
             }
+            .accentColor(Colors.blue)
             .navigationBarTitle(Text(viewStore.theme.title), displayMode: .inline)
             .alert(isPresented: .constant(viewStore.presentCancellationAlert)) {
                 Alert(title: Text("Are you sure?"), primaryButton: Alert.Button.default(Text("common.yes", comment: "YES"), action: {
@@ -166,16 +174,27 @@ struct QuizView: View {
 
 struct QuizView_Previews: PreviewProvider {
     static var previews: some View {
-        return QuizView(
-            store: Store(
-                initialState: QuizState(
-                    theme: Theme.placeholder,
-                    question: QuizQuestionState(question: .placeholder1, answer: nil),
-                    progress: .init(progress: 30, score: 200)
-                ),
-                reducer: quizReducer,
-                environment: QuizEnvironment(databaseClient: DatabaseClient.noop)
+        Constant.quizImageCardSize = UIScreen.main.bounds.width/2.5
+        func getQuizView() -> some View {
+            QuizView(
+                store: Store(
+                    initialState: QuizState(
+                        theme: Theme.placeholder,
+                        question: QuizQuestionState(question: .placeholderWithLongTitleAndImages, answer: nil),
+                        progress: .init(progress: 30, score: 200)
+                    ),
+                    reducer: quizReducer,
+                    environment: QuizEnvironment(databaseClient: DatabaseClient.noop)
+                )
             )
-        )
+        }
+
+        return Group {
+            getQuizView()
+                .previewLayout(.fixed(width: 300, height: 667))
+
+            getQuizView()
+                .previewDevice("iPhone 12 Pro")
+        }
     }
 }
