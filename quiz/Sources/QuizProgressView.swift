@@ -52,7 +52,7 @@ struct QuizProgressView: View {
                     cornerRadius: Constant.cornerRadius,
                     fillAxis: .horizontal
                 )
-                .frame(height: 10)
+                .frame(height: 14)
                 .animation(Animation.spring().speed(1.1))
 
                 Text(viewStore.score.description)
@@ -82,13 +82,14 @@ struct QuizProgressView_Previews: PreviewProvider {
         }
 
         return Group {
-            QuizProgressView(store: getStore(progress: 50, score: 1))
+            QuizProgressView(store: getStore(progress: 0.5, score: 1))
                 .environment(\.colorScheme, .dark)
 
-            QuizProgressView(store: getStore(progress: 25, score: 1000))
+            QuizProgressView(store: getStore(progress: 0.25, score: 1000))
 
-            QuizProgressView(store: getStore(progress: 100, score: 125))
+            QuizProgressView(store: getStore(progress: 1, score: 125))
         }
         .previewLayout(.fixed(width: 375, height: 50))
+        .accentColor(Colors.blue)
     }
 }
