@@ -131,7 +131,6 @@ let appDelegateReducer = Reducer<
     return .none
 }
 
-@UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     let store = Store(
