@@ -36,6 +36,8 @@ struct QuizQuestionState: Equatable, Hashable {
         options = question.options.map(\.quizAnswerState)
     }
 
+    var confettiFileName: String?
+
     var options: [QuizAnswerState]
 
     var title: String { question.title }
@@ -77,6 +79,16 @@ enum QuizQuestionAction: Equatable {
 }
 
 struct QuizQuestionEnvironment {
+
+    let confettiFileNames: [String] = {
+        let path = Bundle.main.resourcePath!
+        let files = FileManager.default
+            .listFiles(in: path, type: "json")
+            .filter { $0.absoluteString.contains("confetti") }
+            .map { $0.deletingPathExtension().lastPathComponent }
+        return files
+    }()
+
 }
 
 let quizQuestionReducer = Reducer<QuizQuestionState,  QuizQuestionAction, QuizQuestionEnvironment>.combine(
@@ -106,9 +118,11 @@ let quizQuestionReducer = Reducer<QuizQuestionState,  QuizQuestionAction, QuizQu
         case .commitAnswer(let answer):
             assert(Thread.isMainThread)
             if answer.isCorrect {
+                state.confettiFileName = environment.confettiFileNames.randomElement()
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                 SoundEffect.playSuccess()
             } else {
+                state.confettiFileName = nil
                 SoundEffect.playError()
             }
 
@@ -246,10 +260,12 @@ struct QuizQuestionView: View {
             .overlay(
                 Group {
                     if viewStore.hasAnswer && viewStore.answerIsCorrect {
-                        LottieView(name: "confetti\(Int.random(in: 1...4))", loopMode: .playOnce)
-                            .edgesIgnoringSafeArea(.all)
-                            .allowsHitTesting(false)
-                            .zIndex(1)
+                        viewStore.confettiFileName.flatMap { filename in
+                            LottieView(name: filename, loopMode: .playOnce)
+                                .edgesIgnoringSafeArea(.all)
+                                .allowsHitTesting(false)
+                                .zIndex(1)
+                        }
                     }
                 }
             )
