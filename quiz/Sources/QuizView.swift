@@ -79,6 +79,10 @@ let quizReducer = Reducer.combine(
             }
 
         case .quizQuestion(.timeout):
+            if let answer = state.question?.compileAnswer() {
+                return .init(value: .quizQuestion(.commitAnswer(answer)))
+            }
+            SoundEffect.playError()
             return .init(value: .quizQuestion(.continueFlow))
 
         case .finish:

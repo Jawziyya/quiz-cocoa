@@ -125,7 +125,6 @@ let quizQuestionReducer = Reducer<QuizQuestionState,  QuizQuestionAction, QuizQu
             return .none
 
         case .timeout:
-            SoundEffect.playError()
             return .none
 
         default:
