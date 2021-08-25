@@ -55,7 +55,7 @@ extension View {
   func navigate<State, Action, DestinationContent>(
     using store: Store<State?, Action>,
     destination: @escaping (_ destinationStore: Store<State, Action>) -> DestinationContent,
-    onDismiss: @escaping () -> Void
+    onDismiss: (() -> Void)? = nil
   ) -> some View
   where DestinationContent: View
   {
@@ -65,7 +65,7 @@ extension View {
         destination: destination,
         action: { isActive in
           if isActive == false {
-            onDismiss()
+            onDismiss?()
           }
         },
         label: EmptyView.init

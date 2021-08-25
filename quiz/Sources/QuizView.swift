@@ -15,6 +15,10 @@ struct QuizState: Equatable, Hashable {
     var theme: Theme
     var question: QuizQuestionState?
     var progress: QuizProgressViewState? = .init(progress: 0, score: 0)
+    var results: QuizResultsState?
+    var showResults = false
+
+    var correctAnswersCount = 0
 
     var questionsComplete = 0 {
         didSet {
@@ -33,6 +37,8 @@ enum QuizAction: Equatable {
     case `continue`
     case quizQuestion(QuizQuestionAction)
     case quizProgress(QuizProgressViewAction)
+    case quizResults(QuizResultsAction)
+    case showResults(Bool)
 }
 
 struct QuizEnvironment {
@@ -62,6 +68,7 @@ let quizReducer = Reducer.combine(
             if answer.isCorrect, var progress = state.progress {
                 progress.score += Constant.correctAnswerPoints
                 state.progress = progress
+                state.correctAnswersCount += 1
             }
             return .none
 
@@ -75,7 +82,7 @@ let quizReducer = Reducer.combine(
                 state.question = .init(question: question)
                 return .none
             } else {
-                return .init(value: .finish)
+                return .init(value: QuizAction.showResults(true))
             }
 
         case .quizQuestion(.timeout):
@@ -84,6 +91,19 @@ let quizReducer = Reducer.combine(
             }
             SoundEffect.playError()
             return .init(value: .quizQuestion(.continueFlow))
+
+        case .showResults(flag: true):
+            state.showResults = true
+            state.results = QuizResultsState(
+                points: state.progress?.score ?? 0,
+                correctAnswers: state.correctAnswersCount,
+                totalQuestions: state.theme.questions.count
+            )
+            return .none
+
+        case .quizResults(.continue):
+            state.showResults = false
+            return .init(value: .finish)
 
         case .finish:
             state.question = nil
@@ -107,6 +127,13 @@ let quizReducer = Reducer.combine(
             state: \.progress,
             action: /QuizAction.quizProgress,
             environment: { _ in () }
+        ),
+    quizResultsReducer
+        .optional()
+        .pullback(
+            state: \.results,
+            action: /QuizAction.quizResults,
+            environment: { _ in .init() }
         )
 )
 .debugActions("⁉️ QuizView", actionFormat: .labelsOnly)
@@ -139,6 +166,13 @@ struct QuizView: View {
     @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
+        NavigationView {
+            view
+                .navigationBarHidden(true)
+        }
+    }
+
+    var view: some View {
         WithViewStore(store) { viewStore in
             VStack(spacing: 0) {
                 Color.clear.frame(height: 16)
@@ -161,6 +195,13 @@ struct QuizView: View {
             }
             .accentColor(Colors.blue)
             .navigationBarTitle(Text(viewStore.theme.title), displayMode: .inline)
+            .navigate(
+                using: self.store.scope(
+                    state: \.results,
+                    action: QuizAction.quizResults
+                ),
+                destination: QuizResultsView.init(store:)
+            )
             .alert(isPresented: .constant(viewStore.presentCancellationAlert)) {
                 Alert(title: Text("Are you sure?"), primaryButton: Alert.Button.default(Text("common.yes", comment: "YES"), action: {
                     viewStore.send(.finish)

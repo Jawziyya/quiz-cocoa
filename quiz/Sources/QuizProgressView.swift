@@ -17,6 +17,7 @@ struct QuizProgressViewState: Equatable, Hashable {
 enum QuizProgressViewAction: Equatable {
     case cancel
 }
+
 typealias QuizProgressViewEnv = Void
 
 let quizProgressViewReducer = Reducer<QuizProgressViewState, QuizProgressViewAction, QuizProgressViewEnv> { state, action, _ in
@@ -25,7 +26,8 @@ let quizProgressViewReducer = Reducer<QuizProgressViewState, QuizProgressViewAct
 
 /**
  Represents quiz progress with progress bar and points number.
- Has a close button which triggers completion action on tap.
+
+ Has a close button which triggers cancel action on tap.
  */
 struct QuizProgressView: View {
 

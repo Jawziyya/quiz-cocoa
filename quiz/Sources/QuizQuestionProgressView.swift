@@ -10,8 +10,6 @@ import SwiftUI
 
 /**
  Timer based progress view.
-
-
  */
 struct QuizQuestionProgressView: View, Equatable {
 
