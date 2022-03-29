@@ -20,15 +20,19 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
 
         window = UIWindow(windowScene: windowScene)
-        let view = HomeView(
-            store: HomeView.Store(
-                initialState: HomeViewState(),
-                reducer: homeViewReducer,
-                environment: ()
+        do {
+            let view = try HomeView(
+                store: HomeView.Store(
+                    initialState: HomeViewState(),
+                    reducer: homeViewReducer,
+                    environment: HomeViewEnv.live()
+                )
             )
-        )
-        let rootViewController = UIHostingController(rootView: view)
-        window?.rootViewController = rootViewController
+            let rootViewController = UIHostingController(rootView: view)
+            window?.rootViewController = rootViewController
+        } catch {
+
+        }
         window?.makeKeyAndVisible()
     }
 
