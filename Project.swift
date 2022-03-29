@@ -60,6 +60,7 @@ enum QuizTarget: String, CaseIterable {
                     .package(product: QuizPackage.entities.name),
                     .package(product: QuizPackage.databaseClient.name),
                     .package(product: "Lottie"),
+                    .package(product: "ConfettiSwiftUI"),
                     .sdk(name: "SwiftUI.framework", status: SDKStatus.optional),
                 ],
                 settings: Settings(
@@ -112,6 +113,7 @@ enum QuizPackage: String {
 let packages: [Package] = [
     .remote(url: "https://github.com/pointfreeco/swift-composable-architecture", requirement: .upToNextMajor(from: "0.16.0")),
     .remote(url: "https://github.com/airbnb/lottie-ios", requirement: .upToNextMajor(from: "3.2.1")),
+    .remote(url: "https://github.com/simibac/ConfettiSwiftUI", requirement: .upToNextMajor(from: "0.3.1")),
     .local(path: QuizPackage.entities.path),
     .local(path: QuizPackage.databaseClient.path)
 ]
