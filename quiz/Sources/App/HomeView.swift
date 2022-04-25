@@ -23,7 +23,8 @@ struct HomeViewState: Equatable {
 enum HomeViewAction: Equatable {
     case appDelegate(AppDelegateAction)
 
-    case showTopics(Bool)
+    case showTopics
+    case closeTopics
     case displayTopics([Topic])
     case quizTopics(QuizTopicsAction)
 
@@ -48,19 +49,18 @@ let homeViewReducer = Reducer.combine(
 
         switch action {
 
-        case .showTopics(let flag):
-            if flag {
-                return env.databaseClient
-                    .fetchTopics
-                    .replaceError(with: [])
-                    .map { topics in
-                        return HomeViewAction.displayTopics(topics)
-                    }
-                    .eraseToEffect()
-            } else {
-                state.topicsState = nil
-                return .none
-            }
+        case .showTopics:
+            return env.databaseClient
+                .fetchTopics
+                .replaceError(with: [])
+                .map { topics in
+                    return HomeViewAction.displayTopics(topics)
+                }
+                .eraseToEffect()
+
+        case .closeTopics:
+            state.topicsState = nil
+            return .none
 
         case .displayTopics(let topics):
             state.topicsState = .init(topics: topics, selectedTheme: .none, selectedQuizState: .none)
@@ -129,7 +129,7 @@ struct HomeView: View {
 
                 VStack {
                     Button(action: {
-                        viewStore.send(.showTopics(true))
+                        viewStore.send(.showTopics)
                     }, label: {
                         Text("Начать")
                             .padding()
@@ -162,7 +162,7 @@ struct HomeView: View {
             ),
             destination: QuizTopicsView.init(store:),
             onDismiss: {
-                ViewStore(store).send(.showTopics(false))
+                ViewStore(store).send(.closeTopics)
             }
         )
     }
