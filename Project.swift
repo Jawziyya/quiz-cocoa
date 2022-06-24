@@ -81,9 +81,6 @@ enum QuizTarget: String, CaseIterable {
                 sources: [
                     "quizTests/Sources/**"
                 ],
-                resources: [
-                    "quizTests/Resources/**"
-                ],
                 dependencies: [
                     .target(name: QuizTarget.quizApp.rawValue),
                 ],
