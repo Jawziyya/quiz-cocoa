@@ -18,6 +18,7 @@ public struct Topic: Hashable, Decodable, Identifiable {
         self.id = id
         self.title = title
         self.themes = themes
+        
     }
 
     public static var placeholder: Topic {
@@ -25,7 +26,10 @@ public struct Topic: Hashable, Decodable, Identifiable {
             .placeholder,
             .quran,
             .sira,
+            .hadj,
+            .ramadan,
+            .salyat,
+            .zakat
         ])
     }
-
 }

@@ -41,4 +41,8 @@ extension Color {
                      blue: min(Double(self.components.blue + percentage/100), 1.0),
                      opacity: Double(self.components.opacity))
     }
+    
+    static let gridTextColor = Color("gridTextColor")
+    static let gridItemsBackground = Color("gridItemsBackground")
+    
 }

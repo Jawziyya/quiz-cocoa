@@ -11,6 +11,7 @@ import ComposableArchitecture
 import Entities
 import DatabaseClient
 import Combine
+import Lottie
 
 struct QuizTopicsState: Equatable {
     let topics: [Topic]
@@ -109,53 +110,89 @@ struct QuizTopicsView: View {
     }
 
     var body: some View {
+        
         WithViewStore(self.store.scope(state: \.topics)) { viewStore in
-            List {
-                ForEach(viewStore.state) { topic in
-                    Section(header: Text(topic.title)) {
-                        ForEach(topic.themes) { theme in
-                            Button(action: {
-                                viewStore.send(.showTheme(theme))
-                            }) {
-                                Text(theme.title)
-                                    .padding(.vertical, 8)
+            
+            let columns: [GridItem]  = [GridItem(.fixed(100), spacing: 80),
+                                     GridItem(.fixed(100), spacing: 80)]
+            
+            ScrollView {
+                
+                LazyVGrid(columns: columns, alignment: .center, spacing: 20) {
+                    ForEach(viewStore.state) { theme in
+                        
+                        Section(header: Text(theme.title)
+                            .font(.title)
+                            .foregroundColor(Color.green)
+
+                        ) {
+                            ForEach(theme.themes) { theme in
+                                Button(action: {
+                                    viewStore.send(.showTheme(theme))
+                                }) {
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .frame(width: 160, height: 200)
+                                            .foregroundColor(Color("topicButtonGrayColor"))
+                                            .shadow(color: Color.white.opacity(0.9), radius: 4, x: -4, y: -4)
+                                            .shadow(color: Color.gray.opacity(0.5), radius: 4, x: 4, y: 4)
+                                        VStack(spacing: 15) {
+                                            Image(theme.titleImage)
+                                                .resizable()
+                                                .scaledToFit()
+                                                .frame(width: 65)
+                                                .foregroundColor(Color("topicImagColor"))
+                                                
+                                            Text(theme.title)
+                                                .font(.caption)
+                                                .foregroundColor(Color.green)
+                                                
+                                        }
+                                        .padding(15)
+                                        .frame(width: 160  ,height: 160)
+                                    
+                                    }
+                                }
                             }
-                            .accentColor(Color(.label))
                         }
                     }
                 }
-            }
-            .fullScreenCover(
-                item: self.viewStore.binding(
-                    get: \.selectedTheme,
-                    send: QuizTopicsAction.showTheme
-                )
-            ) { theme in
-                IfLetStore(
-                    self.store.scope(
-                        state: \.selectedQuizState,
-                        action: QuizTopicsAction.quiz
-                    ),
-                    then: QuizView.init(store:)
-                )
-            }
-            .listStyle(InsetGroupedListStyle())
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    ZStack {
-                        if GameKitHelper.shared.enabled {
-                            Button(action: {
-                                GameKitHelper.shared.authenticateLocalPlayer()
-                            }, label: {
-                                Image(systemName: "list.star")
-                            })
-                        } else {
-                            Color.clear
+                
+
+                .fullScreenCover(
+                    item: self.viewStore.binding(
+                        get: \.selectedTheme,
+                        send: QuizTopicsAction.showTheme
+                    )
+                ) { theme in
+                    IfLetStore(
+                        self.store.scope(
+                            state: \.selectedQuizState,
+                            action: QuizTopicsAction.quiz
+                        ),
+                        then: QuizView.init(store:)
+                    )
+                }
+                .listStyle(InsetGroupedListStyle())
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        ZStack {
+                            if GameKitHelper.shared.enabled {
+                                Button(action: {
+                                    GameKitHelper.shared.authenticateLocalPlayer()
+                                }, label: {
+                                    Image(systemName: "list.star")
+                                })
+                            } else {
+                                Color.clear
+                            }
                         }
                     }
                 }
-            }
             .navigationTitle(Text("topics.title", comment: "Topic screen title."))
+            }
+            //.background(Color("topicViewBackgroundColor").ignoresSafeArea())
+            .background(Color("topicBackgroundGrayColor").ignoresSafeArea())
         }
         .background(
             GeometryReader { proxy in
@@ -167,8 +204,6 @@ struct QuizTopicsView: View {
             }
         )
     }
-
-
 }
 
 struct AppView_Previews: PreviewProvider {
@@ -182,6 +217,6 @@ struct AppView_Previews: PreviewProvider {
                     databaseClient: .noop)
             )
         )
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 }
