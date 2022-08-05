@@ -157,8 +157,6 @@ struct QuizTopicsView: View {
                         }
                     }
                 }
-                
-
                 .fullScreenCover(
                     item: self.viewStore.binding(
                         get: \.selectedTheme,
@@ -191,7 +189,6 @@ struct QuizTopicsView: View {
                 }
             .navigationTitle(Text("topics.title", comment: "Topic screen title."))
             }
-            //.background(Color("topicViewBackgroundColor").ignoresSafeArea())
             .background(Color("topicBackgroundGrayColor").ignoresSafeArea())
         }
         .background(
